@@ -2,6 +2,8 @@
 #define CELLMLSUPPORTGLOBAL_H
 
 #ifdef _WIN32
+#define NOMINMAX
+
     #ifdef CellMLSupport_PLUGIN
         #define CELLMLSUPPORT_EXPORT __declspec(dllexport)
     #else
