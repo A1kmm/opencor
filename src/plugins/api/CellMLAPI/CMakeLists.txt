@@ -111,10 +111,13 @@ IF (NOT EXISTS ${CELLML_API_PATH})
     SET(CELLML_API_VOLUME "${CMAKE_SOURCE_DIR}/${RELATIVE_PROJECT_SOURCE_DIR}/cellml-sdk-${CELLML_API_VERSION}-Mac")
     EXECUTE_PROCESS(
       COMMAND hdiutil attach ${CELLML_API_PATH} -mountroot "${CMAKE_SOURCE_DIR}/${RELATIVE_PROJECT_SOURCE_DIR}"
+      INPUT_FILE "${CMAKE_SOURCE_DIR}/${PROJECT_SOURCE_DIR}/mac-hdiutilinput.txt"
       )
     EXECUTE_PROCESS(
       COMMAND cp "${CELLML_API_VOLUME}/CellML SDK ${CELLML_API_VERSION}.app/Contents/Resources/lib/"*.dylib "${CELLML_API_BINDIR}"
-      COMMAND cp "${CELLML_API_VOLUME}/CellML SDK ${CELLML_API_VERSION}.app/Contents/Resources/include/"*.h "${CELLML_API_BINDIR}"
+      )
+    EXECUTE_PROCESS(
+      COMMAND cp "${CELLML_API_VOLUME}/CellML SDK ${CELLML_API_VERSION}.app/Contents/Resources/include/"*.h* "${CELLML_API_BINDIR}"
       )
     EXECUTE_PROCESS(
       COMMAND hdiutil detach ${CELLML_API_VOLUME}
