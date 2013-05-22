@@ -124,12 +124,10 @@ IF (NOT EXISTS ${CELLML_API_PATH2})
     EXECUTE_PROCESS(
       COMMAND hdiutil attach ${CELLML_API_PATH2} -mountroot "${CMAKE_SOURCE_DIR}/${RELATIVE_PROJECT_SOURCE_DIR}"
       )
-    EXECUTE_PROCESS(
-      COMMAND bash cp "${CELLML_API_VOLUME}/CellML SDK ${CELLML_API_VERSION}.app/Contents/Resources/lib/*.dylib" "${CELLML_API_BINDIR}"
-      )
-    EXECUTE_PROCESS(
-      COMMAND bash cp "${CELLML_API_VOLUME}/CellML SDK ${CELLML_API_VERSION}.app/Contents/Resources/include/*.h*" "${CELLML_API_BINDIR}"
-      )
+    FILE(COPY "${CELLML_API_VOLUME}/CellML SDK ${CELLML_API_VERSION}.app/Contents/Resources/lib/"
+         DESTINATION "${CELLML_API_BINDIR}" FILES_MATCHING "*.dylib")
+    FILE(COPY "${CELLML_API_VOLUME}/CellML SDK ${CELLML_API_VERSION}.app/Contents/Resources/include/"
+         DESTINATION "${CELLML_API_BINDIR}" FILES_MATCHING "*.h*")
     EXECUTE_PROCESS(
       COMMAND hdiutil detach ${CELLML_API_VOLUME}
       )
