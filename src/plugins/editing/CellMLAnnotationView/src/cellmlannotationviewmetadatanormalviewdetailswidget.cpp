@@ -626,7 +626,8 @@ void CellMLAnnotationViewMetadataNormalViewDetailsWidget::showLastRdfTriple()
 
     int row = 0;
 
-    while (mGridLayout->itemAtPosition(++row, 0));
+    while (mGridLayout->itemAtPosition(++row, 0))
+      ;
 
     // Make sure that the last RDF triple is visible
 
