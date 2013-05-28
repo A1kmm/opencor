@@ -3,16 +3,7 @@
 /distrib/windows/x86/msvcr100.dll
 /distrib/windows/x86/msvcp100.dll
 
-/src/plugins/3rdparty/LLVM/bin/linux/x64/libLLVM.so
-/src/plugins/3rdparty/LLVM/bin/linux/x86/libLLVM.so
-
-/src/plugins/3rdparty/LLVM/bin/osx/libLLVM.dylib
-
-/src/plugins/3rdparty/LLVM/bin/windows/x86/debug/LLVM.dll
-/src/plugins/3rdparty/LLVM/bin/windows/x86/debug/LLVM.lib
-
-/src/plugins/3rdparty/LLVM/bin/windows/x86/release/LLVM.dll
-/src/plugins/3rdparty/LLVM/bin/windows/x86/release/LLVM.lib
+/src/plugins/3rdparty/LLVM/bin/**/*
 
 /src/plugins/3rdparty/LLVM/include/llvm/Config/config.h
 /src/plugins/3rdparty/LLVM/include/llvm/Config/llvm-config.h

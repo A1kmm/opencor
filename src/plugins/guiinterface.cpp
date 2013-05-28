@@ -340,6 +340,16 @@ void GuiInterface::changeEvent(QEvent *pEvent)
 
 //==============================================================================
 
+void GuiInterface::updateGui(Plugin *pViewPlugin, const QString &pFileName)
+{
+    // Nothing to do by default...
+
+    Q_UNUSED(pViewPlugin);
+    Q_UNUSED(pFileName);
+}
+
+//==============================================================================
+
 QWidget * GuiInterface::viewWidget(const QString &pFileName)
 {
     Q_UNUSED(pFileName);

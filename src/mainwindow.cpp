@@ -8,7 +8,6 @@
 #include "fileinterface.h"
 #include "i18ninterface.h"
 #include "mainwindow.h"
-#include "plugin.h"
 #include "pluginmanager.h"
 #include "pluginswindow.h"
 #include "preferenceswindow.h"
@@ -70,7 +69,6 @@ MainWindow::MainWindow(SharedTools::QtSingleApplication *pApp) :
     mViewMenus(QMap<Plugin *, QMenu *>()),
     mViewActions(QMap<Plugin *, QAction *>()),
     mViewPlugin(0),
-    mNeedViewPluginInitialisation(true),
     mDockedWidgetsVisible(true),
     mDockedWidgetsState(QByteArray())
 {
@@ -231,8 +229,8 @@ MainWindow::MainWindow(SharedTools::QtSingleApplication *pApp) :
         connect(dockWidget, SIGNAL(visibilityChanged(bool)),
                 this, SLOT(updateDockWidgetsVisibility()));
 
-    // Show/hide and en/disable the docked widgets action depending on whether
-    // there are dock widgets
+    // Show/hide and enable/disable the docked widgets action depending on
+    // whether there are dock widgets
 
     mGui->actionDockedWidgets->setEnabled(dockWidgets.size());
     mGui->actionDockedWidgets->setVisible(dockWidgets.size());
@@ -483,7 +481,7 @@ void MainWindow::initializeGuiPlugin(Plugin *pPlugin, GuiSettings *pGuiSettings)
     menuActionIter.toBack();
 
     while (menuActionIter.hasPrevious()) {
-        // Insert the action/separator to the right menu and keep track of it
+        // Insert the action/separator to the right menu
 
         GuiMenuActionSettings *menuActionSettings = menuActionIter.previous();
 
@@ -496,19 +494,20 @@ void MainWindow::initializeGuiPlugin(Plugin *pPlugin, GuiSettings *pGuiSettings)
             else
                 action = mGui->menuFile->insertSeparator(mGui->menuFile->actions().first());
 
+            // Keep track of the action/separator, so that it can be
+            // shown/hidden depending on which view is selected
+
             mViewActions.insertMulti(pPlugin, action);
 
             break;
         }
-        case GuiMenuActionSettings::View: {
+        case GuiMenuActionSettings::Tools: {
             QAction *action = menuActionSettings->action();
 
             if (action)
-                mGui->menuView->insertAction(mGui->menuView->actions().first(), action);
+                mGui->menuTools->insertAction(mGui->menuTools->actions().first(), action);
             else
-                action = mGui->menuView->insertSeparator(mGui->menuView->actions().first());
-
-            mViewActions.insertMulti(pPlugin, action);
+                action = mGui->menuTools->insertSeparator(mGui->menuTools->actions().first());
 
             break;
         }
@@ -598,8 +597,8 @@ void MainWindow::initializeGuiPlugin(Plugin *pPlugin, GuiSettings *pGuiSettings)
 
             // Also keep track of GUI updates in our central widget
 
-            connect(pGuiSettings->centralWidget(), SIGNAL(guiUpdated(Plugin *)),
-                    this, SLOT(updateGui(Plugin *)));
+            connect(pGuiSettings->centralWidget(), SIGNAL(guiUpdated(Plugin *, const QString &)),
+                    this, SLOT(updateGui(Plugin *, const QString &)));
         }
 
     // Add the windows (including to the corresponding menu)
@@ -1305,65 +1304,76 @@ void MainWindow::restart(const bool &pSaveSettings) const
 
 //==============================================================================
 
-void MainWindow::updateGui(Plugin *pViewPlugin)
+void MainWindow::updateGui(Plugin *pViewPlugin, const QString &pFileName)
 {
     // We come here as a result of our central widget having updated its GUI,
-    // meaning that a new view has been selected, so we may need to show/hide
-    // some actions/menus as a result of it
+    // meaning that a new view or file has been selected, so we may need to
+    // enable/disable and/or show/hide some menus/actions/etc.
 
-    // Check whether we are dealing with the current view plugin
+    // Things that are to be done when a new view plugin has been selected
 
-    if (!mNeedViewPluginInitialisation && (pViewPlugin == mViewPlugin))
-        return;
+    if (pViewPlugin != mViewPlugin) {
+        // Keep track of our view plugin
 
-    // Update our view plugin
+        mViewPlugin = pViewPlugin;
 
-    mViewPlugin = pViewPlugin;
-    mNeedViewPluginInitialisation = false;
+        // Go through our view menus and check whether the view plugin to which
+        // they are attached are our current view plugin or one of its
+        // (in)direct dependencies, and if so then enable and show them, or
+        // disable and hide them
 
-    // Go through our view actions and check whether the view plugin to which
-    // they are attached are our current view plugin or one of its (in)direct
-    // dependencies, and if so then enable it and show it, or disable it and
-    // hide it
+        for (QMap<Plugin *, QMenu *>::ConstIterator iter = mViewMenus.constBegin(),
+                                                    iterEnd = mViewMenus.constEnd();
+             iter != iterEnd; ++iter) {
+            bool validViewMenu = pViewPlugin
+                                 && (   !iter.key()->name().compare(pViewPlugin->name())
+                                     ||  pViewPlugin->info()->fullDependencies().contains(iter.key()->name()));
 
-    for (QMap<Plugin *, QAction *>::ConstIterator iter = mViewActions.constBegin(),
-                                                  iterEnd = mViewActions.constEnd();
-         iter != iterEnd; ++iter) {
-        bool validViewAction = pViewPlugin
-                               && (   !iter.key()->name().compare(pViewPlugin->name())
-                                   ||  pViewPlugin->info()->fullDependencies().contains(iter.key()->name()));
+            iter.value()->menuAction()->setEnabled(validViewMenu);
+            iter.value()->menuAction()->setVisible(validViewMenu);
+        }
 
-        iter.value()->setEnabled(validViewAction);
-        iter.value()->setVisible(validViewAction);
+        // Go through our view actions and do the same as what we did for our
+        // view menus above
+
+        for (QMap<Plugin *, QAction *>::ConstIterator iter = mViewActions.constBegin(),
+                                                      iterEnd = mViewActions.constEnd();
+             iter != iterEnd; ++iter) {
+            bool validViewAction = pViewPlugin
+                                   && (   !iter.key()->name().compare(pViewPlugin->name())
+                                       ||  pViewPlugin->info()->fullDependencies().contains(iter.key()->name()));
+
+            iter.value()->setEnabled(validViewAction);
+            iter.value()->setVisible(validViewAction);
+        }
+
+        // Show/hide the File|New menu by checking whether its menu items are
+        // visible
+
+        if (mFileNewMenu) {
+            bool fileNewMenuVisible = false;
+
+            foreach (QAction *action, mFileNewMenu->actions())
+                if (action->isVisible()) {
+                    fileNewMenuVisible = true;
+
+                    break;
+                }
+
+            mFileNewMenu->menuAction()->setVisible(fileNewMenuVisible);
+        }
     }
 
-    // Go through our view menus and do the same as what we did for our view
-    // actions above
+    // Let our different plugins know that the GUI got updated
+    // Note: this can be useful when a plugin (e.g. CellMLTools) offers some
+    //       tools which may need to be enabled/disabled and shown/hidden,
+    //       depending on which view plugin is currently active...
 
-    for (QMap<Plugin *, QMenu *>::ConstIterator iter = mViewMenus.constBegin(),
-                                                iterEnd = mViewMenus.constEnd();
-         iter != iterEnd; ++iter) {
-        bool validViewMenu = pViewPlugin
-                             && (   !iter.key()->name().compare(pViewPlugin->name())
-                                 ||  pViewPlugin->info()->fullDependencies().contains(iter.key()->name()));
+    foreach (Plugin *plugin, mPluginManager->loadedPlugins()) {
+        GuiInterface *guiInterface = qobject_cast<GuiInterface *>(plugin->instance());
 
-        iter.value()->menuAction()->setVisible(validViewMenu);
-    }
-
-    // Show/hide the File|New menu by checking whether its menu items are
-    // visible
-
-    if (mFileNewMenu) {
-        bool fileNewMenuVisible = false;
-
-        foreach (QAction *action, mFileNewMenu->actions())
-            if (action->isVisible()) {
-                fileNewMenuVisible = true;
-
-                break;
-            }
-
-        mFileNewMenu->menuAction()->setVisible(fileNewMenuVisible);
+        if (guiInterface)
+            guiInterface->updateGui(pViewPlugin, pFileName);
     }
 }
 

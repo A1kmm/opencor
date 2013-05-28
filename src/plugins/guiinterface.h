@@ -8,7 +8,6 @@
 //==============================================================================
 
 #include "interface.h"
-#include "plugin.h"
 
 //==============================================================================
 
@@ -29,6 +28,10 @@ class QToolBar;
 //==============================================================================
 
 namespace OpenCOR {
+
+//==============================================================================
+
+class Plugin;
 
 //==============================================================================
 
@@ -75,7 +78,7 @@ public:
     enum GuiMenuActionSettingsType {
         File,
         FileNew,
-        View
+        Tools
     };
 
     explicit GuiMenuActionSettings(const GuiMenuActionSettingsType &pType,
@@ -184,6 +187,8 @@ public:
     explicit GuiInterface();
 
     virtual void changeEvent(QEvent *pEvent);
+
+    virtual void updateGui(Plugin *pViewPlugin, const QString &pFileName);
 
     virtual QWidget * viewWidget(const QString &pFileName);
     virtual QWidget * removeViewWidget(const QString &pFileName);
