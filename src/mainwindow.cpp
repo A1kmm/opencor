@@ -839,16 +839,8 @@ void MainWindow::setLocale(const QString &pLocale, const bool &pForceSetting)
 
         // Update the locale of our various loaded plugins
         // Note: we must set the locale of all the plugins before we can safely
-        //       retranslate them. Indeed, a plugin may require another plugin
-        //       (which was loaded either before or after) to work properly. For
-        //       example, the QtPropertyBrowserSupport plugin is loaded before
-        //       the SingleCellSimulation plugin. Yet, the latter plugin needs
-        //       the former plugin to be translated before the it can be used
-        //       properly. Conversely, the Core plugin is loaded before the
-        //       RawView plugin. Yet, the former plugin needs the latter plugin
-        //       to be translated before it can be used properly (indeed, the
-        //       Core plugin needs to know the name of the view that was created
-        //       by the RawView plugin). So...
+        //       retranslate them since a plugin may require another plugin to
+        //       work properly...
 
         Plugins loadedPlugins = mPluginManager->loadedPlugins();
         QList<I18nInterface *> i18nInterfaces = QList<I18nInterface *>();
@@ -1281,10 +1273,10 @@ void MainWindow::on_actionAbout_triggered()
     // Display some information about OpenCOR
 
     QMessageBox::about(this, tr("About"),
-                        "<h1 align=center><b>"+getAppVersion(qApp)+"</b></h1>"
+                        "<h1 align=center><strong>"+getAppVersion(qApp)+"</strong></h1>"
                        +"<h3 align=center><em>"+getOsName()+"</em></h3>"
                        +"<p align=center><em>"+getAppCopyright(true)+"</em></p>"
-                       +"<a href=\""+QString(OpencorHomepageUrl)+"\">"+qApp->applicationName()+"</a> "+tr("is a cross-platform <a href=\"http://www.cellml.org/\">CellML</a>-based modelling environment which can be used to organise, edit, simulate and analyse CellML files."));
+                       +"<a href=\""+QString(OpencorHomepageUrl)+"\"><strong>"+qApp->applicationName()+"</strong></a> "+tr("is a cross-platform <a href=\"http://www.cellml.org/\">CellML</a>-based modelling environment which can be used to organise, edit, simulate and analyse CellML files."));
 }
 
 //==============================================================================

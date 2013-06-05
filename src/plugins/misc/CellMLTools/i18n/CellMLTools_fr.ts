@@ -20,8 +20,16 @@
         <translation></translation>
     </message>
     <message>
-        <source>CellML Export To</source>
-        <translation>Exporter CellML Vers</translation>
+        <source>Sorry, but &lt;strong&gt;%1&lt;/strong&gt; could not be exported to &lt;strong&gt;%2&lt;/strong&gt;%3.</source>
+        <translation>Désolé, mais &lt;strong&gt;%1&lt;/strong&gt; n&apos;a pas pu être exporté vers &lt;strong&gt;%2&lt;/strong&gt;%3.</translation>
+    </message>
+    <message>
+        <source>CellML File Export To</source>
+        <translation>Exporter Fichier CellML Vers</translation>
+    </message>
+    <message>
+        <source>CellML file export to %1</source>
+        <translation>Exporter fichier CellML vers %1</translation>
     </message>
 </context>
 </TS>

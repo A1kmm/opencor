@@ -19,7 +19,7 @@
         </script>
 
         <p>
-            Please find below the official releases of OpenCOR, as well as its latest snapshot (you might want to check the <a href="user/supportedPlatforms.html">supported platforms</a>, as well as <a href="user/whatIsNew.html">what is new</a>).
+            Please find below the official releases of OpenCOR, as well as its latest snapshot (you might want to check the <a href="../user/supportedPlatforms.html">supported platforms</a>, as well as <a href="../user/whatIsNew.html">what is new</a>).
         </p>
 
 <?php
@@ -43,7 +43,7 @@
 
     date_default_timezone_set("Europe/London");
 
-    $versions = array(array(0, 1, 2, 27, 5, 2013, 1,
+    $versions = array(array(0, 1, 2, 29, 5, 2013, 1,
                             array(array("Windows", array(".exe"), array(".zip")),
                                   array("Linux", array(".tar.gz", 32), array(".tar.gz", 64)),
                                   array("OS X", array(".dmg"), array(".zip")))),

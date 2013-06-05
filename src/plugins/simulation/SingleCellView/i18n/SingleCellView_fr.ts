@@ -190,8 +190,8 @@
         <translation>Fichier CSV</translation>
     </message>
     <message>
-        <source>Sorry, but the simulation requires %1 of memory while you have %2 left.</source>
-        <translation>Désolé, mais la simulation requiert %1 de mémoire alors qu&apos;il vous reste %2.</translation>
+        <source>Sorry, but the simulation requires %1 of memory and you have only %2 left.</source>
+        <translation>Désolé, mais la simulation requiert %1 de mémoire et il ne vous en reste que %2.</translation>
     </message>
     <message>
         <source>Run the simulation</source>

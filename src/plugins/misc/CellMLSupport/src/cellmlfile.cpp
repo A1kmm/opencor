@@ -3,6 +3,8 @@
 //==============================================================================
 
 #include "cellmlfile.h"
+#include "cellmlfilecellml10exporter.h"
+#include "cellmlfilecellml11exporter.h"
 #include "filemanager.h"
 
 //==============================================================================
@@ -18,7 +20,7 @@
     #include <stdint.h>
     // Note: the above header file is required on Linux, so we can use uint32_t
     //       (required to 'properly' make use of the CellML API). Now, we would
-    //       normally have
+    //       normally use
     //           #include <cstdint>
     //       but this is not supported by the current ISO C++ standard. Indeed,
     //       to include it will generate the following error at compile time:
@@ -93,8 +95,8 @@ void CellMLFile::reset()
 
     mIssues.clear();
 
-    mLoadingNeeded       = true;
-    mValidNeeded         = true;
+    mLoadingNeeded = true;
+    mValidNeeded = true;
     mRuntimeUpdateNeeded = true;
 }
 
@@ -156,7 +158,7 @@ bool CellMLFile::load()
     // In the case of a non CellML 1.0 model, we want all the imports to be
     // fully instantiated
 
-    if (QString::fromStdWString(mModel->cellmlVersion()).compare(CellML_1_0))
+    if (QString::fromStdWString(mModel->cellmlVersion()).compare(CellMLSupport::CellML_1_0))
         try {
             mModel->fullyInstantiateImports();
         } catch (...) {
@@ -164,7 +166,7 @@ bool CellMLFile::load()
             // so...
 
             mIssues << CellMLFileIssue(CellMLFileIssue::Error,
-                                       tr("the model's imports could not be fully instantiated"));
+                                       tr("the imports could not be fully instantiated"));
 
             return false;
         }
@@ -209,7 +211,7 @@ bool CellMLFile::load()
 
 bool CellMLFile::reload()
 {
-    // We want to reload the file, so we must first reset it
+    // We want to reload the file, so we must first reset everything
 
     reset();
 
@@ -222,14 +224,14 @@ bool CellMLFile::reload()
 
 bool CellMLFile::save(const QString &pNewFileName)
 {
-    if (!mLoadingNeeded)
+    if (mLoadingNeeded)
         // The file isn't loaded, so...
 
         return false;
 
     // Determine the file name to use for the CellML file
 
-    QString fileName = pNewFileName.isEmpty()?mFileName:pNewFileName;
+    QString newFileName = pNewFileName.isEmpty()?mFileName:pNewFileName;
 
     // Make sure that the RDF API representation is up to date by updating its
     // data source
@@ -238,7 +240,7 @@ bool CellMLFile::save(const QString &pNewFileName)
 
     // (Create and) open the file for writing
 
-    QFile file(fileName);
+    QFile file(newFileName);
 
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         // The file can't be opened, so...
@@ -256,17 +258,16 @@ bool CellMLFile::save(const QString &pNewFileName)
 
     file.close();
 
+    // Update the file name, both internally and in the file manager
+
+    Core::FileManager::instance()->rename(mFileName, newFileName);
+
+    mFileName = newFileName;
+
     // The CellML file being saved, it cannot be modified (should it have been
     // before)
-    // Note: we must do this before making sure that mFileName is up to date
-    //       since we need the old file name to update the modified status of
-    //       the CellML file...
 
     setModified(false);
-
-    // Make sure that mFileName is up to date
-
-    mFileName = fileName;
 
     // Everything went fine, so...
 
@@ -299,13 +300,17 @@ bool CellMLFile::isValid()
         //       time it takes to fully validate a model that has many
         //       warnings/errors)...
 
-        ObjRef<iface::cellml_services::VACSService> vacssService = CreateVACSService();
-        ObjRef<iface::cellml_services::CellMLValidityErrorSet> cellmlValidityErrorSet = vacssService->validateModel(mModel);
+        // Reset any issues that we may have found before
+
+        mIssues.clear();
 
         // Determine the number of errors and warnings
         // Note: CellMLValidityErrorSet::nValidityErrors() returns any type of
         //       validation issue, be it an error or a warning, so we need to
         //       determine the number of true errors
+
+        ObjRef<iface::cellml_services::VACSService> vacssService = CreateVACSService();
+        ObjRef<iface::cellml_services::CellMLValidityErrorSet> cellmlValidityErrorSet = vacssService->validateModel(mModel);
 
         int cellmlErrorsCount = 0;
 
@@ -423,7 +428,7 @@ bool CellMLFile::isValid()
 
         return mValid;
     } else {
-        // Something went wrong with the loading of the file, so...
+        // The file couldn't be loaded, so...
 
         return false;
     }
@@ -646,6 +651,68 @@ QString CellMLFile::uriBase() const
     // Return the CellML file's URI base
 
     return mUriBase;
+}
+
+//==============================================================================
+
+bool CellMLFile::exportTo(const QString &pFileName, const Format &pFormat)
+{
+    // Export the model to the required format, after loading it if necessary
+
+    if (load()) {
+        // Check that it actually makes sense to export the model
+
+        switch (pFormat) {
+        case CellML_1_1: {
+            // To export to CellML 1.1, the model must be in a non CellML 1.1
+            // format
+
+            if (!QString::fromStdWString(mModel->cellmlVersion()).compare(CellMLSupport::CellML_1_1))
+                // We are already dealing with a CellML 1.1 model, so...
+
+                return false;
+
+            break;
+        }
+        default:   // CellML_1_0
+            // To export to CellML 1.0, the model must be in a non CellML 1.0
+            // format
+
+            if (!QString::fromStdWString(mModel->cellmlVersion()).compare(CellMLSupport::CellML_1_0))
+                // We are already dealing with a CellML 1.0 model, so...
+
+                return false;
+        }
+
+        // Reset any issues that we may have found before
+
+        mIssues.clear();
+
+        // Do the actual export
+
+        switch (pFormat) {
+        case CellML_1_1: {
+            CellMLFileCellML11Exporter exporter(mModel, pFileName);
+
+            if (exporter.errorMessage().size())
+                mIssues << CellMLFileIssue(CellMLFileIssue::Error,
+                                           exporter.errorMessage());
+
+            return exporter.result();
+        }
+        default:   // CellML_1_0
+            CellMLFileCellML10Exporter exporter(mModel, pFileName);
+
+            if (exporter.errorMessage().size())
+                mIssues << CellMLFileIssue(CellMLFileIssue::Error,
+                                           exporter.errorMessage());
+
+            return exporter.result();
+        }
+    }
+
+    // The file couldn't be loaded, so...
+    return false;
 }
 
 //==============================================================================

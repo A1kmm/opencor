@@ -7,8 +7,10 @@
 
 //==============================================================================
 
+#include "cellmlfile.h"
 #include "cellmltoolsglobal.h"
 #include "coreinterface.h"
+#include "fileinterface.h"
 #include "guiinterface.h"
 #include "i18ninterface.h"
 
@@ -20,11 +22,6 @@ namespace CellMLTools {
 //==============================================================================
 
 PLUGININFO_FUNC CellMLToolsPluginInfo();
-
-//==============================================================================
-
-static const QString CellmlMimeType = "application/cellml+xml";
-static const QString CellmlFileExtension = "cellml";
 
 //==============================================================================
 
@@ -42,19 +39,27 @@ class CellMLToolsPlugin : public QObject, public CoreInterface,
 public:
     virtual void initialize();
 
+    virtual void initializationsDone(const Plugins &pLoadedPlugins);
+
     virtual void updateGui(Plugin *pViewPlugin, const QString &pFileName);
 
     virtual void retranslateUi();
 
 private:
-    QMenu *mCellmlExportToMenu;
+    FileTypes mCellMLFileTypes;
 
-    QAction *mExportToCellml10Action;
-    QAction *mExportToCellml11Action;
+    QString mFileName;
+
+    QMenu *mCellMLFileExportToMenu;
+
+    QAction *mExportToCellML10Action;
+    QAction *mExportToCellML11Action;
+
+    void exportTo(const CellMLSupport::CellMLFile::Format &pFormat);
 
 private Q_SLOTS:
-    void exportToCellml10();
-    void exportToCellml11();
+    void exportToCellML10();
+    void exportToCellML11();
 };
 
 //==============================================================================

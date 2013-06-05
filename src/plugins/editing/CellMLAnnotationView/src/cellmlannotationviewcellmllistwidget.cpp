@@ -519,9 +519,9 @@ void CellMLAnnotationViewCellMLListWidget::populateModel()
 
             // Retrieve the model's import's units
 
-            ObjRef<iface::cellml_api::ImportUnitsSet> importUnits = import->units();
+            ObjRef<iface::cellml_api::ImportUnitsSet> importUnitsSet = import->units();
 
-            if (importUnits->length()) {
+            if (importUnitsSet->length()) {
                 // Units category
 
                 CellMLAnnotationViewCellMLElementItem *unitsItem = new CellMLAnnotationViewCellMLElementItem(CellMLAnnotationViewCellMLElementItem::ImportUnit,
@@ -531,7 +531,7 @@ void CellMLAnnotationViewCellMLListWidget::populateModel()
 
                 // Retrieve the model's import's units themselves
 
-                ObjRef<iface::cellml_api::ImportUnitsIterator> importUnitsIterator = importUnits->iterateImportUnits();
+                ObjRef<iface::cellml_api::ImportUnitsIterator> importUnitsIterator = importUnitsSet->iterateImportUnits();
 
                 forever {
                     ObjRef<iface::cellml_api::ImportUnits> importUnit = importUnitsIterator->nextImportUnits();
@@ -579,9 +579,9 @@ void CellMLAnnotationViewCellMLListWidget::populateModel()
 
     // Retrieve the model's units
 
-    ObjRef<iface::cellml_api::UnitsSet> units = mCellMLFile->model()->localUnits();
+    ObjRef<iface::cellml_api::UnitsSet> unitsSet = mCellMLFile->model()->localUnits();
 
-    populateUnitsModel(modelItem, units);
+    populateUnitsModel(modelItem, unitsSet);
 
     // Retrieve the model's components
 
@@ -614,9 +614,9 @@ void CellMLAnnotationViewCellMLListWidget::populateModel()
 
             // Retrieve the model's component's units
 
-            ObjRef<iface::cellml_api::UnitsSet> componentUnits = component->units();
+            ObjRef<iface::cellml_api::UnitsSet> componentUnitsSet = component->units();
 
-            populateUnitsModel(componentItem, componentUnits);
+            populateUnitsModel(componentItem, componentUnitsSet);
 
             // Retrieve the model's component's variables
 
@@ -785,16 +785,19 @@ void CellMLAnnotationViewCellMLListWidget::populateModel()
             // Variable mappings
 
             ObjRef<iface::cellml_api::MapVariablesSet> connectionVariableMappings = connection->variableMappings();
-            ObjRef<iface::cellml_api::MapVariablesIterator> connectionVariableMappingsIterator = connectionVariableMappings->iterateMapVariables();
 
-            forever {
-                ObjRef<iface::cellml_api::MapVariables> connectionVariableMapping = connectionVariableMappingsIterator->nextMapVariables();
+            if (connectionVariableMappings->length()) {
+                ObjRef<iface::cellml_api::MapVariablesIterator> connectionVariableMappingsIterator = connectionVariableMappings->iterateMapVariables();
 
-                if (!connectionVariableMapping)
-                    break;
+                forever {
+                    ObjRef<iface::cellml_api::MapVariables> connectionVariableMapping = connectionVariableMappingsIterator->nextMapVariables();
 
-                connectionItem->appendRow(new CellMLAnnotationViewCellMLElementItem(CellMLAnnotationViewCellMLElementItem::VariableMapping,
-                                                                                    connectionVariableMapping));
+                    if (!connectionVariableMapping)
+                        break;
+
+                    connectionItem->appendRow(new CellMLAnnotationViewCellMLElementItem(CellMLAnnotationViewCellMLElementItem::VariableMapping,
+                                                                                        connectionVariableMapping));
+                }
             }
         }
     }
@@ -803,11 +806,11 @@ void CellMLAnnotationViewCellMLListWidget::populateModel()
 //==============================================================================
 
 void CellMLAnnotationViewCellMLListWidget::populateUnitsModel(CellMLAnnotationViewCellMLElementItem *pCellMLElementItem,
-                                                              iface::cellml_api::UnitsSet *pUnits)
+                                                              iface::cellml_api::UnitsSet *pUnitsSet)
 {
     // Retrieve the units
 
-    if (pUnits->length()) {
+    if (pUnitsSet->length()) {
         // Units category
 
         CellMLAnnotationViewCellMLElementItem *unitsItem = new CellMLAnnotationViewCellMLElementItem(CellMLAnnotationViewCellMLElementItem::Unit,
@@ -817,36 +820,36 @@ void CellMLAnnotationViewCellMLListWidget::populateUnitsModel(CellMLAnnotationVi
 
         // Retrieve the units themselves
 
-        ObjRef<iface::cellml_api::UnitsIterator> unitsIterator = pUnits->iterateUnits();
+        ObjRef<iface::cellml_api::UnitsIterator> unitsIterator = pUnitsSet->iterateUnits();
 
         forever {
-            ObjRef<iface::cellml_api::Units> unit = unitsIterator->nextUnits();
+            ObjRef<iface::cellml_api::Units> units = unitsIterator->nextUnits();
 
-            if (!unit)
+            if (!units)
                 break;
 
-            // A unit
+            // A units
 
             CellMLAnnotationViewCellMLElementItem *unitItem = new CellMLAnnotationViewCellMLElementItem(CellMLAnnotationViewCellMLElementItem::Unit,
-                                                                                                        unit);
+                                                                                                        units);
 
             unitsItem->appendRow(unitItem);
 
-            // Retrieve the unit's unit elements
+            // Retrieve the units' unit references
 
-            ObjRef<iface::cellml_api::UnitSet> unitElements = unit->unitCollection();
+            ObjRef<iface::cellml_api::UnitSet> unitSet = units->unitCollection();
 
-            if (unitElements->length()) {
-                ObjRef<iface::cellml_api::UnitIterator> unitElementsIterator = unitElements->iterateUnits();
+            if (unitSet->length()) {
+                ObjRef<iface::cellml_api::UnitIterator> unitIterator = unitSet->iterateUnits();
 
                 forever {
-                    ObjRef<iface::cellml_api::Unit> unitElement = unitElementsIterator->nextUnit();
+                    ObjRef<iface::cellml_api::Unit> unit = unitIterator->nextUnit();
 
-                    if (!unitElement)
+                    if (!unit)
                         break;
 
                     unitItem->appendRow(new CellMLAnnotationViewCellMLElementItem(CellMLAnnotationViewCellMLElementItem::UnitElement,
-                                                                                  unitElement));
+                                                                                  unit));
                 }
             }
         }
@@ -866,15 +869,18 @@ void CellMLAnnotationViewCellMLListWidget::populateGroupComponentReferenceModel(
     // Retrieve the component reference's children
 
     ObjRef<iface::cellml_api::ComponentRefSet> groupComponentReferences = pGroupComponentReference->componentRefs();
-    ObjRef<iface::cellml_api::ComponentRefIterator> groupComponentReferencesIterator = groupComponentReferences->iterateComponentRefs();
 
-    forever {
-        ObjRef<iface::cellml_api::ComponentRef> groupComponentReference = groupComponentReferencesIterator->nextComponentRef();
+    if (groupComponentReferences->length()) {
+        ObjRef<iface::cellml_api::ComponentRefIterator> groupComponentReferencesIterator = groupComponentReferences->iterateComponentRefs();
 
-        if (!groupComponentReference)
-            break;
+        forever {
+            ObjRef<iface::cellml_api::ComponentRef> groupComponentReference = groupComponentReferencesIterator->nextComponentRef();
 
-        populateGroupComponentReferenceModel(groupComponentReferencesItem, groupComponentReference);
+            if (!groupComponentReference)
+                break;
+
+            populateGroupComponentReferenceModel(groupComponentReferencesItem, groupComponentReference);
+        }
     }
 }
 

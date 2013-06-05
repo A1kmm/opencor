@@ -8,8 +8,8 @@
         <translation type="unfinished">le modèle n&apos;a pas pu être chargé (%1)</translation>
     </message>
     <message>
-        <source>the model&apos;s imports could not be fully instantiated</source>
-        <translation type="unfinished">les importations du modèle n&apos;ont pas pu être complètement instanciées</translation>
+        <source>the imports could not be fully instantiated</source>
+        <translation>les importations n&amp;apos;ont pas pu être complètement instanciées</translation>
     </message>
 </context>
 <context>
@@ -28,6 +28,13 @@
     <message>
         <source>CellML File</source>
         <translation>Fichier CellML</translation>
+    </message>
+</context>
+<context>
+    <name>QObject</name>
+    <message>
+        <source>a CeVAS object could not be created</source>
+        <translation>un objet CeVAS n&apos;a pas pu être créé</translation>
     </message>
 </context>
 </TS>
