@@ -196,7 +196,8 @@ size_t SingleCellViewQwtCurveDataAdaptor::size() const
 
 void SingleCellViewQwtCurveDataAdaptor::updateSize()
 {
-    mSize = mSimulationResults->points().size();
+    mSize = (mSimulationResults->points().size()<=mWhichRepeat) ?
+        0 : mSimulationResults->points()[mWhichRepeat].size();
     d_boundingRect = qwtBoundingRect(*this);
 }
 
