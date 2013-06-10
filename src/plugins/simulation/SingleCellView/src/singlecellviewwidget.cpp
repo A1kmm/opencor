@@ -73,16 +73,20 @@ SingleCellViewWidgetCurveData::SingleCellViewWidgetCurveData
 (
  const QString &pFileName,
  SingleCellViewSimulation *pSimulation,
- QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter> pModelParameter,
- SingleCellViewGraphPanelPlotCurve *pCurve
+ QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter> pModelParameter
 ) :
     mFileName(pFileName),
     mSimulation(pSimulation),
     mModelParameterY(pSimulation->data()->isDAETypeSolver() ?
                      pModelParameter->DAEData() : pModelParameter->ODEData()),
-    mCurve(pCurve),
-    mAttached(true)
+    mAttached(true), mPlottedCurve(0), mPlottedPoint(0)
 {
+  int repeats = mSimulation->data()->solverProperties()["nrepeats"].toInt();
+  for (int i = 0; i < repeats; i++) {
+      mCurves << QSharedPointer<SingleCellViewGraphPanelPlotCurve>(new SingleCellViewGraphPanelPlotCurve());
+      mCurves.last()->setData(new SingleCellViewQwtCurveDataAdaptor
+                              (pSimulation, i, this));
+  }
 }
 
 //==============================================================================
@@ -106,11 +110,20 @@ SingleCellViewWidgetCurveData::modelParameter() const
 
 //==============================================================================
 
-SingleCellViewGraphPanelPlotCurve * SingleCellViewWidgetCurveData::curve() const
+const QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> > SingleCellViewWidgetCurveData::curves() const
 {
     // Return our curve
 
-    return mCurve;
+    return mCurves;
+}
+
+//==============================================================================
+
+    QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> > SingleCellViewWidgetCurveData::curves()
+{
+    // Return our curve
+
+    return mCurves;
 }
 
 //==============================================================================
@@ -134,12 +147,12 @@ void SingleCellViewWidgetCurveData::setAttached(const bool &pAttached)
 SingleCellViewQwtCurveDataAdaptor::SingleCellViewQwtCurveDataAdaptor
 (
  SingleCellViewSimulation* pSimulation,
+ int pWhichRepeat,
  SingleCellViewWidgetCurveData* pCurveData
 )
-    : mSimulationResults(pSimulation->results())
+  : mSimulationResults(pSimulation->results()),
+    mWhichRepeat(pWhichRepeat)
 {
-    mSize = mSimulationResults->points().size();
-
     QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> pY = 
         pCurveData->modelParameterY();
     switch (pY->type()) {
@@ -148,7 +161,7 @@ SingleCellViewQwtCurveDataAdaptor::SingleCellViewQwtCurveDataAdaptor
         break;
     case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::Constant:
     case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::ComputedConstant:
-        mConstantYValue = pSimulation->data()->constants()[pY->index()];
+        mConstantYValue = pSimulation->results()->constants()[mWhichRepeat][pY->index()];
         mSampleY = &SingleCellViewQwtCurveDataAdaptor::sampleConstantY;
         break;
     case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::State:
@@ -168,7 +181,7 @@ SingleCellViewQwtCurveDataAdaptor::SingleCellViewQwtCurveDataAdaptor
         mSampleY = &SingleCellViewQwtCurveDataAdaptor::sampleConstantY;
     }
 
-    d_boundingRect = qwtBoundingRect(*this);
+    updateSize();
 }
 
 QRectF SingleCellViewQwtCurveDataAdaptor::boundingRect() const
@@ -181,29 +194,38 @@ size_t SingleCellViewQwtCurveDataAdaptor::size() const
     return mSize;
 }
 
+void SingleCellViewQwtCurveDataAdaptor::updateSize()
+{
+    mSize = mSimulationResults->points().size();
+    d_boundingRect = qwtBoundingRect(*this);
+}
+
 QPointF SingleCellViewQwtCurveDataAdaptor::sample(size_t i) const
 {
+    if (i >= mSize)
+        return QPointF(0.0, 0.0);
+
     return QPointF(sampleBvar(i), (this->*mSampleY)(i));
 }
 
 double SingleCellViewQwtCurveDataAdaptor::sampleBvar(size_t i) const
 {
-    return mSimulationResults->points()[i];
+    return mSimulationResults->points()[mWhichRepeat][i];
 }
 
 double SingleCellViewQwtCurveDataAdaptor::sampleStateY(size_t i) const
 {
-    return mSimulationResults->states()[i][mSampleYIndex];
+    return mSimulationResults->states()[mWhichRepeat][i][mSampleYIndex];
 }
 
 double SingleCellViewQwtCurveDataAdaptor::sampleRateY(size_t i) const
 {
-    return mSimulationResults->rates()[i][mSampleYIndex];
+    return mSimulationResults->rates()[mWhichRepeat][i][mSampleYIndex];
 }
 
 double SingleCellViewQwtCurveDataAdaptor::sampleAlgebraicY(size_t i) const
 {
-    return mSimulationResults->algebraic()[i][mSampleYIndex];
+    return mSimulationResults->algebraic()[mWhichRepeat][i][mSampleYIndex];
 }
 
 double SingleCellViewQwtCurveDataAdaptor::sampleConstantY(size_t) const
@@ -229,7 +251,7 @@ SingleCellViewWidget::SingleCellViewWidget(SingleCellViewPlugin *pPluginParent,
     mSplitterWidgetSizes(QList<int>()),
     mRunActionEnabled(true),
     mCurvesData(QMap<QString, SingleCellViewWidgetCurveData *>()),
-    mOldSimulationResultsSizes(QMap<SingleCellViewSimulation *, qulonglong>()),
+    mOldSimulationResultsSizes(QMap<SingleCellViewSimulation *, QPair<qulonglong, qulonglong> >()),
     mCheckResultsSimulations(QList<QPointer<SingleCellViewSimulation> >())
 {
     // Set up the GUI
@@ -390,7 +412,6 @@ SingleCellViewWidget::~SingleCellViewWidget()
     // Delete our curves' data
 
     foreach (SingleCellViewWidgetCurveData *curveData, mCurvesData) {
-        delete curveData->curve();
         delete curveData;
     }
 
@@ -635,7 +656,8 @@ void SingleCellViewWidget::initialize(const QString &pFileName)
 
         foreach (SingleCellViewWidgetCurveData *curveData, mCurvesData)
             if (!curveData->fileName().compare(previousFileName))
-                curveData->setAttached(curveData->curve()->plot());
+                curveData->setAttached(curveData->curves().first() != NULL &&
+                                       curveData->curves().first()->plot() != NULL);
     }
 
     // Retrieve our simulation object for the current model, if any
@@ -768,15 +790,19 @@ void SingleCellViewWidget::initialize(const QString &pFileName)
     foreach (SingleCellViewWidgetCurveData *curveData, mCurvesData)
         if ( !curveData->isAttached()
              || curveData->fileName().compare(pFileName))
-            mActiveGraphPanel->plot()->detach(curveData->curve());
+            for (int i = 0; i < curveData->curves().size(); i++)
+                mActiveGraphPanel->plot()->detach(curveData->curves()[i].data());
 
     // Update our previous (if any) and current simulation results
 
     if (   previousSimulation
         && (previousSimulation->isRunning() || previousSimulation->isPaused()))
-        updateResults(previousSimulation, previousSimulation->results()->size());
+        updateResults(previousSimulation,
+                      previousSimulation->results()->repeatSize(),
+                      previousSimulation->results()->size());
 
-    updateResults(mSimulation, mSimulation->results()->size(), true);
+    updateResults(mSimulation, mSimulation->results()->repeatSize(),
+                  mSimulation->results()->size(), true);
 
     // Check that we have a valid runtime
 
@@ -843,11 +869,11 @@ void SingleCellViewWidget::initialize(const QString &pFileName)
     foreach (SingleCellViewWidgetCurveData *curveData, mCurvesData)
         if (    curveData->isAttached()
             && !curveData->fileName().compare(pFileName)) {
-            curveData->curve()->setData(new SingleCellViewQwtCurveDataAdaptor
-                                        (mSimulation, curveData));
-            mActiveGraphPanel->plot()->attach(curveData->curve());
+            for (int i = 0; i < curveData->curves().size(); i++)
+                mActiveGraphPanel->plot()->attach(curveData->curves()[i].data());
         } else {
-            mActiveGraphPanel->plot()->detach(curveData->curve());
+            for (int i = 0; i < curveData->curves().size(); i++)
+                mActiveGraphPanel->plot()->detach(curveData->curves()[i].data());
         }
 
     // Retrieve our graph panel's plot's axes settings and replot our graph
@@ -945,13 +971,9 @@ void SingleCellViewWidget::finalize(const QString &pFileName)
     foreach (SingleCellViewWidgetCurveData *curveData, mCurvesData)
         if (!curveData->fileName().compare(pFileName)) {
             // Keep track of the file name and model parameter of the curve data
-
             fileNames << curveData->fileName();
             modelParameters << curveData->modelParameter();
 
-            // Delete the curve and the curve data themselves
-
-            delete curveData->curve();
             delete curveData;
         }
 
@@ -1092,11 +1114,11 @@ void SingleCellViewWidget::on_actionRunPauseResume_triggered()
 
                 // Reset our simulation settings
 
-                mOldSimulationResultsSizes.insert(mSimulation, 0);
+                mOldSimulationResultsSizes.insert(mSimulation, QPair<qulonglong, qulonglong>(0, 0));
 
                 mSimulation->results()->reset();
 
-                updateResults(mSimulation, 0);
+                updateResults(mSimulation, 0, 0);
 
                 // Effectively run our simulation, if possible
 
@@ -1517,31 +1539,24 @@ void SingleCellViewWidget::showModelParameter
         // our curve's data, in case we are to make it visible
 
         if (pShow) {
-            curveData->curve()->setData(new SingleCellViewQwtCurveDataAdaptor
-                                        (mSimulation, curveData));
-
-            mActiveGraphPanel->plot()->attach(curveData->curve());
+            for (int i = 0; i < curveData->curves().size(); i++)
+                mActiveGraphPanel->plot()->attach(curveData->curves()[i].data());
         } else {
-            mActiveGraphPanel->plot()->detach(curveData->curve());
+            for (int i = 0; i < curveData->curves().size(); i++)
+                mActiveGraphPanel->plot()->detach(curveData->curves()[i].data());
         }
     } else if (pShow) {
         // We don't have a curve, but we want one so create one, as well as some
         // data for it
 
-        SingleCellViewGraphPanelPlotCurve *curve = new SingleCellViewGraphPanelPlotCurve();
-        SingleCellViewWidgetCurveData *curveData = new SingleCellViewWidgetCurveData(pFileName, mSimulation, pModelParameter, curve);
+        SingleCellViewWidgetCurveData *curveData = new SingleCellViewWidgetCurveData(pFileName, mSimulation, pModelParameter);
 
-        // Set some data for our curve
-
-        curve->setData(new SingleCellViewQwtCurveDataAdaptor
-                                        (mSimulation, curveData));
-
-        // Attach the curve to our graph panel's plot
-
-        mActiveGraphPanel->plot()->attach(curve);
+        for (int i = 0; i < curveData->curves().size(); i++) {
+            // Attach the curve to our graph panel's plot
+            mActiveGraphPanel->plot()->attach(curveData->curves()[i].data());
+        }
 
         // Keep track of our curve data
-
         mCurvesData.insert(key, curveData);
     }
 
@@ -1556,6 +1571,7 @@ void SingleCellViewWidget::showModelParameter
 //==============================================================================
 
 void SingleCellViewWidget::updateResults(SingleCellViewSimulation *pSimulation,
+                                         const qulonglong &pRepeatSize,
                                          const qulonglong &pSize,
                                          const bool &pReplot)
 {
@@ -1570,39 +1586,48 @@ void SingleCellViewWidget::updateResults(SingleCellViewSimulation *pSimulation,
         // We are dealing with the active simulation, so update our curves and
         // progress bar, and enable/disable the export to CSV
 
-        // Update our curves, if any
+        // Update our progress bar
+        mProgressBarWidget->setValue(mSimulation->progress());
 
-        foreach (SingleCellViewWidgetCurveData *curveData, mCurvesData)
-            // Update the curve, should it be attached
-
-            if (curveData->curve()->plot()) {
-                // Keep track of our curve's old size
-
-                qulonglong oldDataSize = curveData->curve()->dataSize();
-
-                // Update our curve's data
-
-                curveData->curve()->setData(new SingleCellViewQwtCurveDataAdaptor
-                                            (mSimulation, curveData));
-
-                // Draw the curve's new segment, but only if there is some data to
-                // plot and that we don't want to replot everything
-
-                if (!pReplot && (pSize > 1))
-                    mActiveGraphPanel->plot()->drawCurveSegment(curveData->curve(), oldDataSize?oldDataSize-1:0, pSize-1);
-            }
-
-        // Replot our active graph panel, if needed
-
-        if (pReplot || (pSize <= 1))
+        if (pReplot || (pSize <= 1)) {
             // We want to initialise the plot and/or there is no data to plot,
             // so replot our active graph panel
-
             mActiveGraphPanel->plot()->replotNow();
+            return;
+        }
 
-        // Update our progress bar
+        // We aren't replotting everything, so compute what we need to plot.
+        foreach (SingleCellViewWidgetCurveData *curveData, mCurvesData) {
+            qulonglong whichPoint = curveData->plottedPoint(), whichRepeat;
 
-        mProgressBarWidget->setValue(mSimulation->progress());
+            if (curveData->plottedCurve() >= pRepeatSize || curveData->plottedPoint() >= pSize) {
+                curveData->plottedCurve(0);
+                curveData->plottedPoint(0);
+            }
+
+            // Skip curves with zero repeats and curves with no plot.
+            if (curveData->curves().size() == 0)
+                continue;
+            if (!curveData->curves().first()->plot())
+                continue;
+
+            for (whichRepeat = curveData->plottedCurve();
+                 whichRepeat < pRepeatSize; whichRepeat++, whichPoint=0) {
+                qulonglong nPoints = (whichRepeat == pRepeatSize - 1) ?
+                    pSize : pSimulation->results()->points()[whichRepeat].size();
+                if (nPoints == 0) {
+                    if (whichRepeat != 0)
+                        whichRepeat--;
+                    break;
+                }
+                if (nPoints == 0 || whichPoint >= nPoints - 1)
+                    continue;
+                mActiveGraphPanel->plot()->drawCurveSegment(curveData->curves()[whichRepeat],
+                                                            whichPoint, nPoints - 1);
+            }
+            curveData->plottedCurve(whichRepeat);
+            curveData->plottedPoint(whichPoint);
+        }
     } else {
         // We are dealing with another simulation, so simply create an icon that
         // shows the other simulation's progress and let people know about it
@@ -1639,14 +1664,21 @@ void SingleCellViewWidget::checkResults(SingleCellViewSimulation *pSimulation)
 {
     // Update our simulation results size
 
+    qulonglong simulationRepeatResultsSize = pSimulation->results()->repeatSize();
     qulonglong simulationResultsSize = pSimulation->results()->size();
 
     // Update our results, but only if needed
 
-    if (simulationResultsSize != mOldSimulationResultsSizes.value(pSimulation)) {
-        mOldSimulationResultsSizes.insert(pSimulation, simulationResultsSize);
+    QPair<qulonglong, qulonglong> resultSizes
+        (mOldSimulationResultsSizes.value(pSimulation));
+    if (simulationRepeatResultsSize != resultSizes.first ||
+        simulationResultsSize != resultSizes.second) {
+        mOldSimulationResultsSizes.insert
+            (
+             pSimulation,
+             QPair<qulonglong, qulonglong>(simulationRepeatResultsSize, simulationResultsSize));
 
-        updateResults(pSimulation, simulationResultsSize);
+        updateResults(pSimulation, simulationRepeatResultsSize, simulationResultsSize);
     }
 
     // Ask to recheck our simulation's results, but only if our simulation is

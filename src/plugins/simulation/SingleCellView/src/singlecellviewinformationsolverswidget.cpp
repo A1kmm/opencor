@@ -174,7 +174,7 @@ void SingleCellViewInformationSolversWidget::setupBuiltInSolvers()
     // Add the list of solvers to our list property value item
     selectSolverProperty->value()->setList(solverNames);
 
-    Core::Property * debugMode, * relTol, * absTol, * maxStep, * maxSteps;
+    Core::Property * debugMode, * relTol, * absTol, * maxStep, * maxSteps, * nrepeats;
 
     // Note: These properties are owned by the PropertyEditorWidget parent class
     // so we don't need to delete them.
@@ -217,17 +217,24 @@ void SingleCellViewInformationSolversWidget::setupBuiltInSolvers()
                               tr("Maximum Number of Steps"));
         setIntegerPropertyItem(maxSteps->value(), 10000);
     }
+    {
+      nrepeats = addIntegerProperty("nrepeats", true,
+                                    solverSectionProperty);
+      setStringPropertyItem(nrepeats->name(),
+                            tr("Number Of Repeats for Sensitivity Analysis"));
+      setIntegerPropertyItem(nrepeats->value(), 1);
+    }
 
     // Build a map which says which properties are used by each integrator.
     QMap<QString, Core::Properties> solversProperties = QMap<QString, Core::Properties>();
     {
         Core::Properties properties;
-        properties << debugMode << relTol << absTol << maxStep << maxSteps;
+        properties << debugMode << relTol << absTol << maxStep << maxSteps << nrepeats;
         solversProperties.insert("IDA", properties);
     }
     {
         Core::Properties properties;
-        properties << debugMode << relTol << absTol << maxStep << maxSteps;
+        properties << debugMode << relTol << absTol << maxStep << maxSteps << nrepeats;
         solversProperties.insert("CVODE", properties);
     }
 

@@ -93,8 +93,7 @@ public:
         return "resultlistener";
     }
 
-    void computedConstants(const std::vector<double>&) throw() {
-    }
+    void computedConstants(const std::vector<double>&) throw();
     void results(const std::vector<double>& pState) throw();
 
     void done() throw();
@@ -111,6 +110,7 @@ private:
     QMutex mResultMutex;
 
 Q_SIGNALS:
+    void constantsAvailable(const QList<double> allConsts);
     void solveDone();
     void solveFailure(QString pFailWhy);
     void solvePointAvailable(double bvar, const QList<double> states,
@@ -246,7 +246,7 @@ private Q_SLOTS:
 class SingleCellViewSimulationResults : public QObject
 {
 public:
-    typedef QList<QList<double> > Matrix;
+    typedef QList<QList<QList<double > > > Matrix;
 
     explicit SingleCellViewSimulationResults(CellMLSupport::CellMLFileRuntime *pRuntime,
                                              SingleCellViewSimulation *pSimulation);
@@ -254,14 +254,18 @@ public:
 
     void reset();
 
+    void addConstants(const QList<double>& pConstants);
     void addPoint(const double &pPoint,
                   const QList<double>& pStates, const QList<double>& pRates,
                   const QList<double>& pAlgebraic);
 
     qulonglong size() const;
+    qulonglong repeatSize() const;
 
-    QList<double>& points() { return mPoints; }
-    const QList<double>& points() const { return mPoints; }
+    QList<QList<double> >& constants() { return mConstants; }
+    const QList<QList<double> >& constants() const { return mConstants; }
+    QList<QList<double> >& points() { return mPoints; }
+    const QList<QList<double> >& points() const { return mPoints; }
 
     Matrix& states() { return mStates; };
     const Matrix& states() const { return mStates; };
@@ -275,7 +279,8 @@ public:
 private:
     CellMLSupport::CellMLFileRuntime *mRuntime;
     SingleCellViewSimulation *mSimulation;
-    QList<double> mPoints;
+    QList<QList<double> > mPoints;
+    QList<QList<double> > mConstants;
     // Note that the outer list index is timestep, the inner is variable offset.
     // Doing it this way allows us to leverage the implicit COW sharing supported
     // by QList to avoid unneeded data copying.
@@ -329,6 +334,7 @@ private:
     bool simulationSettingsOk(const bool &pEmitError = true);
 
 public Q_SLOTS:
+    void constantsAvailable(const QList<double> allConsts);
     void simulationComplete();
     void simulationFailed(QString pError);
     void simulationDataAvailable(double pPoint, QList<double> pStates,

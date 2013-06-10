@@ -72,17 +72,22 @@ class SingleCellViewSimulationResults;
 class SingleCellViewWidgetCurveData
 {
 public:
-    explicit SingleCellViewWidgetCurveData(const QString &pFileName,
-                                           SingleCellViewSimulation *pSimulation,
-                                           QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter>
-                                             pModelParameter,
-                                           SingleCellViewGraphPanelPlotCurve *pCurve);
+    SingleCellViewWidgetCurveData(const QString &pFileName,
+                                  SingleCellViewSimulation *pSimulation,
+                                  QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter>
+                                    pModelParameter);
 
     QString fileName() const;
 
     QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> modelParameter() const;
 
-    SingleCellViewGraphPanelPlotCurve * curve() const;
+    const QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> > curves() const;
+    QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> > curves();
+
+    qulonglong plottedCurve() const { return mPlottedCurve; }
+    qulonglong plottedPoint() const { return mPlottedPoint; }
+    void plottedCurve(qulonglong pValue) { mPlottedCurve = pValue; }
+    void plottedPoint(qulonglong pValue) { mPlottedPoint = pValue; }
 
     bool isAttached() const;
     void setAttached(const bool &pAttached);
@@ -94,14 +99,11 @@ public:
 
 private:
     QString mFileName;
-
     SingleCellViewSimulation *mSimulation;
-
     QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> mModelParameterY;
-
-    SingleCellViewGraphPanelPlotCurve *mCurve;
-
+    QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> > mCurves;
     bool mAttached;
+    qulonglong mPlottedCurve, mPlottedPoint;
 };
 
 class SingleCellViewQwtCurveDataAdaptor
@@ -109,9 +111,11 @@ class SingleCellViewQwtCurveDataAdaptor
 {
 public:
     SingleCellViewQwtCurveDataAdaptor(SingleCellViewSimulation* pSimulation,
+                                      int pWhichRepeat,
                                       SingleCellViewWidgetCurveData* pCurveData);
 
     virtual QRectF boundingRect() const;
+    void updateSize();
     virtual size_t size() const;
     virtual QPointF sample(size_t i) const;
 
@@ -127,6 +131,7 @@ private:
 
     SingleCellViewSimulationResults* mSimulationResults;
     double (SingleCellViewQwtCurveDataAdaptor::* mSampleY)(size_t i) const;
+    int mWhichRepeat;
     size_t mSize;
 };
 
@@ -218,7 +223,7 @@ private:
 
     QMap<QString, SingleCellViewWidgetCurveData *> mCurvesData;
 
-    QMap<SingleCellViewSimulation *, qulonglong> mOldSimulationResultsSizes;
+    QMap<SingleCellViewSimulation*, QPair<qulonglong, qulonglong> > mOldSimulationResultsSizes;
 
     QList<QPointer<SingleCellViewSimulation> > mCheckResultsSimulations;
 
@@ -235,6 +240,7 @@ private:
     void updateInvalidModelMessageWidget();
 
     void updateResults(SingleCellViewSimulation *pSimulation,
+                       const qulonglong &pRepeatSize,
                        const qulonglong &pSize,
                        const bool &pReplot = false);
     void checkResults(SingleCellViewSimulation *pSimulation);

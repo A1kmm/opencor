@@ -51,7 +51,7 @@ public:
     void attach(SingleCellViewGraphPanelPlotCurve *pCurve);
     void detach(SingleCellViewGraphPanelPlotCurve *pCurve);
 
-    void drawCurveSegment(SingleCellViewGraphPanelPlotCurve *pCurve,
+    void drawCurveSegment(QSharedPointer<SingleCellViewGraphPanelPlotCurve> pCurve,
                           const qulonglong &pFrom, const qulonglong &pTo);
 
     void checkLocalAxes(const bool &pCanReplot = true,

@@ -3,6 +3,7 @@
 //==============================================================================
 
 #include "singlecellviewgraphpanelplotwidget.h"
+#include "singlecellviewwidget.h"
 
 //==============================================================================
 
@@ -1045,6 +1046,9 @@ void SingleCellViewGraphPanelPlotWidget::drawCoordinates(QPainter *pPainter,
 
 void SingleCellViewGraphPanelPlotWidget::drawCanvas(QPainter *pPainter)
 {
+    foreach (SingleCellViewGraphPanelPlotCurve *curve, mCurves)
+        static_cast<SingleCellViewQwtCurveDataAdaptor*>(curve->data())->updateSize();
+
     switch (mAction) {
     case ShowCoordinates: {
         // We are showing some coordinates, so start by drawing our pixmap
@@ -1169,9 +1173,11 @@ void SingleCellViewGraphPanelPlotWidget::detach(SingleCellViewGraphPanelPlotCurv
 
 //==============================================================================
 
-void SingleCellViewGraphPanelPlotWidget::drawCurveSegment(SingleCellViewGraphPanelPlotCurve *pCurve,
-                                                          const qulonglong &pFrom,
-                                                          const qulonglong &pTo)
+void SingleCellViewGraphPanelPlotWidget::drawCurveSegment
+(
+ QSharedPointer<SingleCellViewGraphPanelPlotCurve> pCurve,
+ const qulonglong &pFrom,
+ const qulonglong &pTo)
 {
     // Make sure that we have a curve segment to draw
 
@@ -1225,7 +1231,7 @@ void SingleCellViewGraphPanelPlotWidget::drawCurveSegment(SingleCellViewGraphPan
             // Our X/Y axis can handle the X/Y min/max of our new data, so just
             // draw our new curve segment
 
-            mDirectPainter->drawSeries(pCurve, pFrom, pTo);
+            mDirectPainter->drawSeries(pCurve.data(), pFrom, pTo);
     }
 }
 

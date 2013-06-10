@@ -89,6 +89,10 @@
         <source>Debug Numerical Problems Mode</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Number Of Repeats for Sensitivity Analysis</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>OpenCOR::SingleCellView::SingleCellViewInformationWidget</name>

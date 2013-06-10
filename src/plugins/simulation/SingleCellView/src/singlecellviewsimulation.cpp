@@ -89,6 +89,17 @@ ResultListener::unsuspend()
 }
 
 void
+ResultListener::computedConstants(const std::vector<double>& pResults)
+    throw()
+{
+    QList<double> consts;
+    for (std::vector<double>::const_iterator i = pResults.begin(); i != pResults.end();
+         i++)
+        consts << *i;
+    emit constantsAvailable(consts);
+}
+
+void
 ResultListener::results(const std::vector<double>& pState)
     throw()
 {
@@ -109,7 +120,7 @@ ResultListener::results(const std::vector<double>& pState)
             rates << *i++;
         for (int j = 0; j < mNAlgebraic; j++)
             algebraic << *i++;
-        solvePointAvailable(bvar, states, rates, algebraic);
+        emit solvePointAvailable(bvar, states, rates, algebraic);
 
         int delay = mDelay.load();
         if (delay) {
@@ -126,14 +137,14 @@ void
 ResultListener::done()
     throw()
 {
-    solveDone();
+    emit solveDone();
 }
 
 void
 ResultListener::failed(const std::string& pFailWhy)
     throw()
 {
-    solveFailure(QString::fromStdString(pFailWhy));
+    emit solveFailure(QString::fromStdString(pFailWhy));
 }
 
 //==============================================================================
@@ -619,6 +630,7 @@ void SingleCellViewSimulationData::startMainSimulation(SingleCellViewSimulation*
                                    );
     mIntegrationRun->setProgressObserver(mResultReceiver);
 
+    QObject::connect(mResultReceiver, SIGNAL(constantsAvailable(const QList<double>)), pSignalsTo, SLOT(constantsAvailable(const QList<double>)));
     QObject::connect(mResultReceiver, SIGNAL(solveDone()), pSignalsTo, SLOT(simulationComplete()));
     QObject::connect(mResultReceiver, SIGNAL(solveFailure(QString)), pSignalsTo, SLOT(simulationFailed(QString)));
     QObject::connect(mResultReceiver, SIGNAL(solvePointAvailable(double,QList<double>,QList<double>,QList<double>)), pSignalsTo, SLOT(simulationDataAvailable(double,QList<double>,QList<double>,QList<double>)));
@@ -656,6 +668,15 @@ void SingleCellViewSimulationResults::reset()
 }
 
 //==============================================================================
+void SingleCellViewSimulationResults::addConstants
+(
+ const QList<double>& pConstants
+)
+{
+    mConstants << pConstants;
+}
+
+//==============================================================================
 
 void SingleCellViewSimulationResults::addPoint
 (
@@ -665,17 +686,34 @@ void SingleCellViewSimulationResults::addPoint
  const QList<double>& pAlgebraic
 )
 {
+    // See if we are starting a new trace...
+    int sz = mPoints.size() - 1;
+    if (sz == -1 || 
+        (mPoints[sz].size() != 0 && mPoints[sz][mPoints[sz].size() - 1] >= pPoint)) {
+        mPoints << QList<double>();
+        mStates << QList<QList<double> >();
+        mRates << QList<QList<double> >();
+        mAlgebraic << QList<QList<double> >();
+        sz++;
+    }
     // Add the data to our different arrays
+    mPoints[sz]    << pPoint;
+    mStates[sz]    << pStates;
+    mRates[sz]     << pRates;
+    mAlgebraic[sz] << pAlgebraic;
+}
 
-    mPoints    << pPoint;
-    mStates    << pStates;
-    mRates     << pRates;
-    mAlgebraic << pAlgebraic;
+//==============================================================================
+qulonglong SingleCellViewSimulationResults::size() const
+{
+    if (mPoints.size() == 0)
+        return 0;
+    return mPoints.first().size();
 }
 
 //==============================================================================
 
-qulonglong SingleCellViewSimulationResults::size() const
+qulonglong SingleCellViewSimulationResults::repeatSize() const
 {
     // Return our size
     return mPoints.size();
@@ -720,36 +758,38 @@ bool SingleCellViewSimulationResults::exportToCsv(const QString &pFileName) cons
     // Data itself
 
     for (int j = 0; j < mPoints.size(); ++j) {
-        out << mPoints[j];
+        for (int k = 0; k < mPoints[j].size(); ++k) {
+            out << mPoints[j][k];
 
-        for (int i = 0, iMax = mRuntime->modelParameters().count(); i < iMax; ++i) {
-            QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter> modelParameter =
-                mRuntime->modelParameters()[i];
-            QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> compiledParameter =
-                isDAEType ? modelParameter->DAEData() : modelParameter->ODEData();
+            for (int i = 0, iMax = mRuntime->modelParameters().count(); i < iMax; ++i) {
+                QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter> modelParameter =
+                    mRuntime->modelParameters()[i];
+                QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> compiledParameter =
+                    isDAEType ? modelParameter->DAEData() : modelParameter->ODEData();
 
-            switch (compiledParameter->type()) {
-            case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::Constant:
-            case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::ComputedConstant:
-                out << "," << mSimulation->data()->constants()[compiledParameter->index()];
+                switch (compiledParameter->type()) {
+                case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::Constant:
+                case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::ComputedConstant:
+                    out << "," << mSimulation->data()->constants()[compiledParameter->index()];
+                    
+                    break;
+                case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::State:
+                    out << "," << mStates[j][k][compiledParameter->index()];
 
-                break;
-            case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::State:
-                out << "," << mStates[j][compiledParameter->index()];
-
-                break;
-            case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::Rate:
-                out << "," << mRates[j][compiledParameter->index()];
-
-                break;
-            case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::Algebraic:
-                out << "," << mAlgebraic[j][compiledParameter->index()];
+                    break;
+                case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::Rate:
+                    out << "," << mRates[j][k][compiledParameter->index()];
 
                 break;
-            default:
-                // Either Voi or Undefined, so...
+                case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::Algebraic:
+                    out << "," << mAlgebraic[j][k][compiledParameter->index()];
 
-                ;
+                    break;
+                default:
+                    // Either Voi or Undefined, so...
+                    
+                    ;
+                }
             }
         }
 
@@ -842,13 +882,19 @@ double SingleCellViewSimulation::progress() const
         return 1.0;
     double m = pn - p0;
 
-    QList<double> p = mResults->points();
+    QList<QList<double> > p = mResults->points();
     if (p.isEmpty())
         return 0.0;
 
-    double pLastSoFar = p.last();
+    double nRepeats = mData->solverProperties()["nrepeats"].toDouble();
+    double doneRepeats = static_cast<double>(p.size() - 1) / nRepeats;
 
-    return (pLastSoFar - p0) / m;
+    if (p.last().size() == 0)
+        return doneRepeats;
+    else {
+        double pLastSoFar = p.last().last();
+        return doneRepeats + (pLastSoFar - p0) / m / nRepeats;
+    }
 }
 
 //==============================================================================
@@ -991,6 +1037,11 @@ void SingleCellViewSimulation::stop()
     emit stopped(this,
                  mRunTime.elapsed());
     emit mData->updated();
+}
+
+void SingleCellViewSimulation::constantsAvailable(const QList<double> pAllConstants)
+{
+    mResults->addConstants(pAllConstants);
 }
 
 void SingleCellViewSimulation::simulationComplete()
