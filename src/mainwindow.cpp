@@ -88,7 +88,7 @@ MainWindow::MainWindow(SharedTools::QtSingleApplication *pApp) :
     // Create our plugin manager (which will automatically load our various
     // plugins)
 
-    mPluginManager = new PluginManager(PluginInfo::Gui);
+    mPluginManager = new PluginManager();
 
     // Set up the GUI
     // Note: the application icon (which needs to be set for Linux, but not for
@@ -98,6 +98,11 @@ MainWindow::MainWindow(SharedTools::QtSingleApplication *pApp) :
     //       used in, for example, the about box...
 
     mGui->setupUi(this);
+//---GRY--- BEGIN
+// THIS IS TEMPORARY, I.E. WHILE WE DON'T FULLY SUPPORT USER PREFERENCES...
+mGui->actionPreferences->setEnabled(false);
+mGui->actionPreferences->setVisible(false);
+//---GRY--- END
 
     // Title of our main window
     // Note: we don't set it in our .ui file since this will require

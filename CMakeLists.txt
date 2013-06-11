@@ -103,10 +103,10 @@ INCLUDE_DIRECTORIES(
 
 UPDATE_LANGUAGE_FILES(${PROJECT_NAME} FALSE)
 
-# Third-party libraries which must be directly embedded in the GUI version of
+# Third-party library which must be directly embedded in the GUI version of
 # OpenCOR
 
-INCLUDE_THIRD_PARTY_LIBRARY(. QtSingleApplication)
+INCLUDE(src/3rdparty/QtSingleApplication/QtSingleApplication.cmake)
 
 # Set the application icon, but only for Windows and OS X, since in the case of
 # Linux, it's done through res/OpenCOR.qrc
@@ -152,7 +152,7 @@ IF(ENABLE_TESTING)
                                                         ${DEST_TESTS_DIR}/${MAIN_TEST_FILENAME})
 ENDIF()
 
-# Build the plugins used by either the GUI and/or console version of OpenCOR
+# Build the OpenCOR plugins
 
 SET(PLUGINS
     # Build the plugins which may be required by other plugins
