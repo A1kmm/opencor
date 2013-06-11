@@ -596,9 +596,14 @@ void SingleCellViewSimulationData::checkForModifications()
     }
 }
 
-void SingleCellViewSimulationData::startMainSimulation(SingleCellViewSimulation* pSignalsTo)
+void SingleCellViewSimulationData::startNextRepeat()
 {
-    stopAllSimulations();
+    mCurrentRepeat++;
+    if (mCurrentRepeat >= solverProperties()["nrepeats"].toInt()) {
+        emit simulationComplete();
+        return;
+    }
+
     newIntegrationRun();
 
     if (!mIntegrationRun)
@@ -630,14 +635,22 @@ void SingleCellViewSimulationData::startMainSimulation(SingleCellViewSimulation*
                                    );
     mIntegrationRun->setProgressObserver(mResultReceiver);
 
-    QObject::connect(mResultReceiver, SIGNAL(constantsAvailable(const QList<double>)), pSignalsTo, SLOT(constantsAvailable(const QList<double>)));
-    QObject::connect(mResultReceiver, SIGNAL(solveDone()), pSignalsTo, SLOT(simulationComplete()));
-    QObject::connect(mResultReceiver, SIGNAL(solveFailure(QString)), pSignalsTo, SLOT(simulationFailed(QString)));
-    QObject::connect(mResultReceiver, SIGNAL(solvePointAvailable(double,QList<double>,QList<double>,QList<double>)), pSignalsTo, SLOT(simulationDataAvailable(double,QList<double>,QList<double>,QList<double>)));
+    QObject::connect(mResultReceiver, SIGNAL(constantsAvailable(const QList<double>)), this, SIGNAL(constantsAvailable(const QList<double>)));
+    QObject::connect(mResultReceiver, SIGNAL(solveDone()), this, SLOT(startNextRepeat()));
+    QObject::connect(mResultReceiver, SIGNAL(solveFailure(QString)), this, SIGNAL(simulationFailed(QString)));
+    QObject::connect(mResultReceiver, SIGNAL(solvePointAvailable(double,QList<double>,QList<double>,QList<double>)), this, SIGNAL(simulationDataAvailable(double,QList<double>,QList<double>,QList<double>)));
 
     setupOverrides();
     mIntegrationRun->start();
 }
+
+void SingleCellViewSimulationData::startMainSimulation()
+{
+    stopAllSimulations();
+    mCurrentRepeat = -1;
+
+    startNextRepeat();
+ }
 
 //==============================================================================
 
@@ -815,9 +828,13 @@ SingleCellViewSimulation::SingleCellViewSimulation(const QString &pFileName,
     mResults(new SingleCellViewSimulationResults(pRuntime, this))
 {
     // Keep track of any error occurring in our data
-
     connect(mData, SIGNAL(error(const QString &)),
             this, SLOT(reemitError(const QString &)));
+
+    QObject::connect(mData, SIGNAL(constantsAvailable(const QList<double>)), this, SLOT(constantsAvailable(const QList<double>)));
+    QObject::connect(mData, SIGNAL(simulationComplete()), this, SLOT(simulationComplete()));
+    QObject::connect(mData, SIGNAL(simulationFailed(QString)), this, SLOT(simulationFailed(QString)));
+    QObject::connect(mData, SIGNAL(simulationDataAvailable(double,QList<double>,QList<double>,QList<double>)), this, SLOT(simulationDataAvailable(double,QList<double>,QList<double>,QList<double>)));
 }
 
 //==============================================================================
@@ -1009,7 +1026,7 @@ void SingleCellViewSimulation::run()
 
     emit running(this, true);
 
-    data()->startMainSimulation(this);
+    data()->startMainSimulation();
 }
 
 //==============================================================================

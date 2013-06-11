@@ -43,6 +43,7 @@
 #include <QTimer>
 #include <QVariant>
 #include <QPointer>
+#include <assert.h>
 
 //==============================================================================
 
@@ -126,6 +127,40 @@ const QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> > SingleCellViewWi
     return mCurves;
 }
 
+void SingleCellViewWidgetCurveData::updateCurves(SingleCellViewGraphPanelPlotWidget* pPlot, bool pActive)
+{
+    int initialSize = mCurves.size();
+    int repeats = mSimulation->data()->solverProperties()["nrepeats"].toInt();
+    int sizeDiff = mCurves.size() - repeats;
+    if (sizeDiff > 0) {
+        QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> >::iterator
+            startDeletingAt(mCurves.end());
+        QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> >::iterator
+            startDetachingAt(mCurves.end());
+        startDeletingAt -= sizeDiff;
+        
+        for (startDetachingAt -= sizeDiff; startDetachingAt != mCurves.end();
+             startDetachingAt++)
+            pPlot->detach(startDetachingAt->data());
+        mCurves.erase(startDeletingAt, mCurves.end());
+    } else if (sizeDiff < 0) {
+        for (int repeatNo = initialSize; repeatNo < repeats;
+             repeatNo++) {
+            mCurves << QSharedPointer<SingleCellViewGraphPanelPlotCurve>(new SingleCellViewGraphPanelPlotCurve());
+            mCurves.last()->setData(new SingleCellViewQwtCurveDataAdaptor
+                                    (mSimulation, repeatNo, this));
+        }
+    }
+    assert(mCurves.size() == repeats);
+
+    if (isAttached() && pActive)
+        for (int i = 0; i < mCurves.size(); i++)
+            pPlot->attach(mCurves[i].data());
+    else
+        for (int i = 0; i < mCurves.size(); i++)
+            pPlot->detach(mCurves[i].data());
+}
+
 //==============================================================================
 
 bool SingleCellViewWidgetCurveData::isAttached() const
@@ -161,7 +196,7 @@ SingleCellViewQwtCurveDataAdaptor::SingleCellViewQwtCurveDataAdaptor
         break;
     case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::Constant:
     case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::ComputedConstant:
-        mConstantYValue = pSimulation->results()->constants()[mWhichRepeat][pY->index()];
+        mConstantYIndex = pY->index();
         mSampleY = &SingleCellViewQwtCurveDataAdaptor::sampleConstantY;
         break;
     case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::State:
@@ -177,7 +212,7 @@ SingleCellViewQwtCurveDataAdaptor::SingleCellViewQwtCurveDataAdaptor
         mSampleY = &SingleCellViewQwtCurveDataAdaptor::sampleAlgebraicY;
         break;
     default:
-        mConstantYValue = 0.0;
+        mConstantYIndex = -1;
         mSampleY = &SingleCellViewQwtCurveDataAdaptor::sampleConstantY;
     }
 
@@ -231,7 +266,9 @@ double SingleCellViewQwtCurveDataAdaptor::sampleAlgebraicY(size_t i) const
 
 double SingleCellViewQwtCurveDataAdaptor::sampleConstantY(size_t) const
 {
-    return mConstantYValue;
+    if (mConstantYIndex < 0)
+        return 0.0;
+    return mSimulationResults->constants()[mWhichRepeat][mConstantYIndex];
 }
 
 
@@ -789,10 +826,8 @@ void SingleCellViewWidget::initialize(const QString &pFileName)
     // We need to initially detach curves with non-matching file names now because
     // updateResults can lead to graph data being accessed.
     foreach (SingleCellViewWidgetCurveData *curveData, mCurvesData)
-        if ( !curveData->isAttached()
-             || curveData->fileName().compare(pFileName))
-            for (int i = 0; i < curveData->curves().size(); i++)
-                mActiveGraphPanel->plot()->detach(curveData->curves()[i].data());
+        curveData->updateCurves(mActiveGraphPanel->plot(),
+                                !curveData->fileName().compare(pFileName));
 
     // Update our previous (if any) and current simulation results
 
@@ -866,16 +901,11 @@ void SingleCellViewWidget::initialize(const QString &pFileName)
 
     // Attach/detach the curves, based on whether they are associated with then
     // given file name
+    
 
     foreach (SingleCellViewWidgetCurveData *curveData, mCurvesData)
-        if (    curveData->isAttached()
-            && !curveData->fileName().compare(pFileName)) {
-            for (int i = 0; i < curveData->curves().size(); i++)
-                mActiveGraphPanel->plot()->attach(curveData->curves()[i].data());
-        } else {
-            for (int i = 0; i < curveData->curves().size(); i++)
-                mActiveGraphPanel->plot()->detach(curveData->curves()[i].data());
-        }
+        curveData->updateCurves(mActiveGraphPanel->plot(),
+                                !curveData->fileName().compare(pFileName));
 
     // Retrieve our graph panel's plot's axes settings and replot our graph
     // panel's plot, if available
@@ -1118,6 +1148,10 @@ void SingleCellViewWidget::on_actionRunPauseResume_triggered()
                 mOldSimulationResultsSizes.insert(mSimulation, QPair<qulonglong, qulonglong>(0, 0));
 
                 mSimulation->results()->reset();
+
+                foreach (SingleCellViewWidgetCurveData *curveData, mCurvesData)
+                    curveData->updateCurves(mActiveGraphPanel->plot(),
+                                            !curveData->fileName().compare(mSimulation->fileName()));
 
                 updateResults(mSimulation, 0, 0);
 
@@ -1538,24 +1572,15 @@ void SingleCellViewWidget::showModelParameter
     if (curveData) {
         // We already have a curve, so just make it visible/invisible and update
         // our curve's data, in case we are to make it visible
-
-        if (pShow) {
-            for (int i = 0; i < curveData->curves().size(); i++)
-                mActiveGraphPanel->plot()->attach(curveData->curves()[i].data());
-        } else {
-            for (int i = 0; i < curveData->curves().size(); i++)
-                mActiveGraphPanel->plot()->detach(curveData->curves()[i].data());
-        }
+        curveData->setAttached(pShow);
+        curveData->updateCurves(mActiveGraphPanel->plot(), pShow);
     } else if (pShow) {
         // We don't have a curve, but we want one so create one, as well as some
         // data for it
 
         SingleCellViewWidgetCurveData *curveData = new SingleCellViewWidgetCurveData(pFileName, mSimulation, pModelParameter);
-
-        for (int i = 0; i < curveData->curves().size(); i++) {
-            // Attach the curve to our graph panel's plot
-            mActiveGraphPanel->plot()->attach(curveData->curves()[i].data());
-        }
+        curveData->setAttached(pShow);
+        curveData->updateCurves(mActiveGraphPanel->plot(), true);
 
         // Keep track of our curve data
         mCurvesData.insert(key, curveData);

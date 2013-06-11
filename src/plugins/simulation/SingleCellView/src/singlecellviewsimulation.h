@@ -184,7 +184,7 @@ public:
 
     SimulatorState state() const { return mState; }
     void state(SimulatorState pState) { mState = pState; }
-    void startMainSimulation(SingleCellViewSimulation* pSignalsTo);
+    void startMainSimulation();
     void stopAllSimulations();
 
     void ensureCodeCompiled();
@@ -217,6 +217,8 @@ private:
     QString mSolverName;
     Properties mSolverProperties;
 
+    int mCurrentRepeat;
+
     QList<double> mConstants;
     QList<double> mStates;
     QList<double> mRates;
@@ -236,7 +238,13 @@ Q_SIGNALS:
 
     void error(const QString &pMessage);
 
+    void constantsAvailable(const QList<double>);
+    void simulationDataAvailable(double,QList<double>,QList<double>,QList<double>);
+    void simulationFailed(QString);
+    void simulationComplete();
+
 private Q_SLOTS:
+    void startNextRepeat();
     void initialValuesIn();
     void initialValuesFailed(QString pFailWhy);
 };

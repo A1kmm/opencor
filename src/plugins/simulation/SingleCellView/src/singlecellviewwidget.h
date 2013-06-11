@@ -64,11 +64,18 @@ class SingleCellViewPlugin;
 class SingleCellViewSimulation;
 class SingleCellViewSimulationData;
 class SingleCellViewSimulationResults;
+class SingleCellViewGraphPanelPlotWidget;
 
 //==============================================================================
 
 //==============================================================================
 
+/**
+ * This class represents a record of a variable that can be plotted on a graph.
+ * There is only one object of this class for each variable; due to the repeats
+ * feature, there may be multiple traces associated with this data (each represented
+ * by a SingleCellViewGraphPanelPlotCurve.
+ */
 class SingleCellViewWidgetCurveData
 {
 public:
@@ -83,6 +90,14 @@ public:
 
     const QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> > curves() const;
     QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> > curves();
+
+    /**
+     * Set up the right number of SingleCellViewGraphPanelPlotCurve objects to
+     * match the number of repeats (reusing existing objects where possible),
+     * and attaches or detaches them from a plot, depending on isAttached().
+     * If pActive is false, always detach.
+     */
+    void updateCurves(SingleCellViewGraphPanelPlotWidget* pPlot, bool pActive);
 
     qulonglong plottedCurve() const { return mPlottedCurve; }
     qulonglong plottedPoint() const { return mPlottedPoint; }
@@ -126,7 +141,7 @@ private:
     double sampleAlgebraicY(size_t i) const;
     double sampleConstantY(size_t i) const;
 
-    double mConstantYValue;
+    int mConstantYIndex;
     int mSampleYIndex;
 
     SingleCellViewSimulationResults* mSimulationResults;
