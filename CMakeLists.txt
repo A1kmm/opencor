@@ -5,8 +5,7 @@ PROJECT(OpenCOR)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.9)
 
 # Name of the main project and location of the built OpenCOR binary
-# Note: these are required, on OS X, to determine where plugins should be
-#       copied, so...
+# Note: these are required to determine where plugins should be copied on OS X...
 
 SET(MAIN_PROJECT_NAME ${PROJECT_NAME})
 SET(OS_X_PROJECT_BINARY_DIR ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app)
@@ -47,6 +46,7 @@ SET(SOURCES
     src/pluginswindow.cpp
     src/preferenceswindow.cpp
 
+    src/misc/cliapplication.cpp
     src/misc/common.cpp
     src/misc/utils.cpp
 
@@ -61,7 +61,6 @@ SET(SOURCES
     src/plugins/solverinterface.cpp
 
     src/plugins/misc/Core/src/commonwidget.cpp
-    src/plugins/misc/Core/src/dockwidget.cpp
 )
 
 SET(HEADERS_MOC
@@ -71,8 +70,6 @@ SET(HEADERS_MOC
 
     src/plugins/plugin.h
     src/plugins/pluginmanager.h
-
-    src/plugins/misc/Core/src/dockwidget.h
 )
 
 SET(UIS
@@ -89,13 +86,8 @@ SET(RESOURCES
 # Various include directories
 
 INCLUDE_DIRECTORIES(
-    build
-    src
     src/misc
     src/plugins
-    src/plugins/misc/Core/src
-    src/ui
-    src/widgets
 )
 
 # Update the translation (.ts) files and generate the language (.qm) files

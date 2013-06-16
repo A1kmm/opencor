@@ -88,7 +88,7 @@ MainWindow::MainWindow(SharedTools::QtSingleApplication *pApp) :
     // Create our plugin manager (which will automatically load our various
     // plugins)
 
-    mPluginManager = new PluginManager();
+    mPluginManager = new PluginManager(qApp);
 
     // Set up the GUI
     // Note: the application icon (which needs to be set for Linux, but not for
@@ -167,8 +167,7 @@ mGui->actionPreferences->setVisible(false);
     Plugins loadedPlugins = mPluginManager->loadedPlugins();
 
     foreach (Plugin *plugin, loadedPlugins) {
-        // Do various things that are related to our differennt plugin
-        // interfaces
+        // Do various things that are related to our different plugin interfaces
         // Note: the order in which we do those things is important since, for
         //       example, the call to CoreInterface::initialize() may need some
         //       information which has been set as part of the GUI interface
@@ -1264,11 +1263,15 @@ void MainWindow::on_actionPreferences_triggered()
 
 //==============================================================================
 
+static const QString OpencorHomePageUrl = "http://www.opencor.ws/";
+
+//==============================================================================
+
 void MainWindow::on_actionHomePage_triggered()
 {
     // Look up OpenCOR's home page
 
-    QDesktopServices::openUrl(QUrl(OpencorHomepageUrl));
+    QDesktopServices::openUrl(QUrl(OpencorHomePageUrl));
 }
 
 //==============================================================================
@@ -1281,7 +1284,7 @@ void MainWindow::on_actionAbout_triggered()
                         "<h1 align=center><strong>"+getAppVersion(qApp)+"</strong></h1>"
                        +"<h3 align=center><em>"+getOsName()+"</em></h3>"
                        +"<p align=center><em>"+getAppCopyright(true)+"</em></p>"
-                       +"<a href=\""+QString(OpencorHomepageUrl)+"\"><strong>"+qApp->applicationName()+"</strong></a> "+tr("is a cross-platform <a href=\"http://www.cellml.org/\">CellML</a>-based modelling environment which can be used to organise, edit, simulate and analyse CellML files."));
+                       +"<a href=\""+QString(OpencorHomePageUrl)+"\"><strong>"+qApp->applicationName()+"</strong></a> "+tr("is a cross-platform <a href=\"http://www.cellml.org/\">CellML</a>-based modelling environment which can be used to organise, edit, simulate and analyse CellML files."));
 }
 
 //==============================================================================

@@ -1,5 +1,5 @@
 //==============================================================================
-// Some common methods between the command line and GUI version of OpenCOR
+// Some common methods between the CLI and GUI version of OpenCOR
 //==============================================================================
 
 #ifndef COMMON_H
@@ -18,8 +18,6 @@ class QCoreApplication;
 namespace OpenCOR {
 
 //==============================================================================
-
-static const QString OpencorHomepageUrl = "http://www.opencor.ws/";
 
 void error(QCoreApplication *pApp, const QString &pMsg);
 

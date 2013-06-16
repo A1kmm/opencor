@@ -55,28 +55,32 @@ public:
         ThirdParty
     };
 
-    explicit PluginInfo(const InterfaceVersion &pInterfaceVersion = UndefinedInterfaceVersion,
-                        const Category &pCategory = Miscellaneous,
-                        const bool &pManageable = false,
-                        const QStringList &pDependencies = QStringList(),
-                        const Descriptions &pDescriptions = Descriptions());
+    explicit PluginInfo(const InterfaceVersion &pInterfaceVersion,
+                        const Category &pCategory, const bool &pCliSupport,
+                        const bool &pManageable,
+                        const QStringList &pDependencies,
+                        const Descriptions &pDescriptions);
 
     InterfaceVersion interfaceVersion() const;
 
     Category category() const;
-    bool manageable() const;
+
+    bool hasCliSupport() const;
+    bool isManageable() const;
 
     QStringList dependencies() const;
     QStringList fullDependencies() const;
     void setFullDependencies(const QStringList &pFullDependencies);
 
-    QString description(const QString &pLocale) const;
+    QString description(const QString &pLocale = "en") const;
     Descriptions descriptions() const;
 
 private:
     InterfaceVersion mInterfaceVersion;
 
     Category mCategory;
+
+    bool mCliSupport;
     bool mManageable;
 
     QStringList mDependencies;

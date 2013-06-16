@@ -16,6 +16,10 @@
 
 //==============================================================================
 
+class QCoreApplication;
+
+//==============================================================================
+
 namespace OpenCOR {
 
 //==============================================================================
@@ -29,11 +33,13 @@ class PluginManager : public QObject
     Q_OBJECT
 
 public:
-    explicit PluginManager();
+    explicit PluginManager(QCoreApplication *pApp,
+                           const bool &pGuiVersion = true);
     ~PluginManager();
 
     Plugins plugins() const;
     Plugins loadedPlugins() const;
+    Plugins loadedCliPlugins() const;
 
     QString pluginsDir() const;
     Plugin * plugin(const QString &pName) const;

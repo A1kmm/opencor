@@ -13,7 +13,6 @@
 
 #include <QIcon>
 #include <QList>
-#include <QMap>
 #include <QKeySequence>
 
 //==============================================================================
@@ -22,6 +21,7 @@ class QAction;
 class QDockWidget;
 class QMainWindow;
 class QMenu;
+class QSettings;
 class QTabBar;
 class QToolBar;
 
@@ -36,14 +36,8 @@ class Plugin;
 //==============================================================================
 
 namespace Core {
-
-//==============================================================================
-
-class CentralWidget;
-class DockWidget;
-
-//==============================================================================
-
+    class CentralWidget;
+    class DockWidget;
 }
 
 //==============================================================================
@@ -228,6 +222,14 @@ protected:
     QMainWindow *mMainWindow;
 
     GuiSettings *mGuiSettings;
+
+    void loadWindowSettings(QSettings *pSettings,
+                            Core::DockWidget *pWindow);
+    void saveWindowSettings(QSettings *pSettings,
+                            Core::DockWidget *pWindow) const;
+
+    void loadViewSettings(QSettings *pSettings, QObject *pView);
+    void saveViewSettings(QSettings *pSettings, QObject *pView) const;
 
 private:
     virtual void destroy();

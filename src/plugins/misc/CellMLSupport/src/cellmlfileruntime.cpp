@@ -439,49 +439,6 @@ bool sortModelParameters(QSharedPointer<CellMLFileRuntimeModelParameter> pModelP
     }
 }
 
-
-    /*
-        // Determine the type of the model parameter
-        CellMLFileRuntimeCompiledModelParameter::ModelParameterType modelParameterType;
-
-        switch (computationTarget->type()) {
-        case iface::cellml_services::VARIABLE_OF_INTEGRATION:
-            modelParameterType = CellMLFileRuntimeCompiledModelParameter::Voi;
-            break;
-        case iface::cellml_services::CONSTANT: {
-            ObjRef<iface::cellml_api::CellMLVariable> variable = computationTarget->variable();
-            if (variable->initialValue().empty())
-                // The computed target doesn't have an initial value, so it must
-                // be a 'computed' constant
-                modelParameterType = CellMLFileRuntimeCompiledModelParameter::ComputedConstant;
-            else
-                // The computed target has an initial value, so it must be a
-                // 'proper' constant
-                modelParameterType = CellMLFileRuntimeCompiledModelParameter::Constant;
-            break;
-        }
-        case iface::cellml_services::STATE_VARIABLE:
-        case iface::cellml_services::PSEUDOSTATE_VARIABLE:
-            modelParameterType = CellMLFileRuntimeCompiledModelParameter::State;
-            break;
-        case iface::cellml_services::ALGEBRAIC:
-            // We are dealing with either a 'proper' algebraic variable or a
-            // rate variable
-            // Note: if the variable's degree is equal to zero, then we are
-            //       dealing with a 'proper' algebraic variable otherwise we
-            //       are dealing with a rate variable...
-            if (computationTarget->degree())
-                modelParameterType = CellMLFileRuntimeCompiledModelParameter::Rate;
-            else
-                modelParameterType = CellMLFileRuntimeCompiledModelParameter::Algebraic;
-            break;
-        default:
-            // We are dealing with a type of computed target which is of no
-            // interest to us, so...
-            modelParameterType = CellMLFileRuntimeCompiledModelParameter::Undefined;
-        }
-     */
-
 //==============================================================================
 
 // Update a model.

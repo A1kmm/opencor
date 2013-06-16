@@ -1,22 +1,17 @@
 //==============================================================================
-// Core interface
+// CLI application
 //==============================================================================
 
-#ifndef COREINTERFACE_H
-#define COREINTERFACE_H
-
-//==============================================================================
-
-#include "interface.h"
-#include "plugin.h"
+#ifndef CLIAPPLICATION_H
+#define CLIAPPLICATION_H
 
 //==============================================================================
 
-#include <QUrl>
+#include <QStringList>
 
 //==============================================================================
 
-class QSettings;
+class QCoreApplication;
 
 //==============================================================================
 
@@ -24,33 +19,36 @@ namespace OpenCOR {
 
 //==============================================================================
 
-class CoreInterface : public Interface
-{
+class PluginManager;
+
+//==============================================================================
+
+class CliApplication {
 public:
-    virtual void initialize();
-    virtual void finalize();
+    explicit CliApplication(QCoreApplication *pApp);
+    ~CliApplication();
 
-    virtual void initializationsDone(const Plugins &pLoadedPlugins);
+    bool run(int *pRes);
 
-    virtual void loadSettings(QSettings *pSettings);
-    virtual void saveSettings(QSettings *pSettings) const;
+private:
+    QCoreApplication *mApp;
 
-    virtual void loadingOfSettingsDone(const Plugins &pLoadedPlugins);
+    PluginManager *mPluginManager;
 
-    virtual void handleArguments(const QStringList &pArguments);
-    virtual void handleAction(const QUrl &pUrl);
+    void usage();
 
-    virtual void runCliCommand(const QString &pCommand,
-                              const QStringList &pArguments, int *pRes);
+    void version();
+    void about();
+
+    void loadPlugins();
+    void plugins();
+
+    bool command(const QStringList pArguments, int *pRes);
 };
 
 //==============================================================================
 
 }   // namespace OpenCOR
-
-//==============================================================================
-
-Q_DECLARE_INTERFACE(OpenCOR::CoreInterface, "OpenCOR::CoreInterface")
 
 //==============================================================================
 

@@ -189,14 +189,9 @@ bool CellMLFile::load()
             ObjRef<iface::rdf_api::TripleSet> rdfTriples = mRdfDataSource->getAllTriples();
             ObjRef<iface::rdf_api::TripleEnumerator> rdfTriplesEnumerator = rdfTriples->enumerateTriples();
 
-            forever {
-                ObjRef<iface::rdf_api::Triple> rdfTriple = rdfTriplesEnumerator->getNextTriple();
-
-                if (!rdfTriple)
-                    break;
-
+            for (ObjRef<iface::rdf_api::Triple> rdfTriple = rdfTriplesEnumerator->getNextTriple();
+                 rdfTriple; rdfTriple = rdfTriplesEnumerator->getNextTriple())
                 mRdfTriples << new CellMLFileRdfTriple(this, rdfTriple);
-            }
         }
     }
 
@@ -348,46 +343,35 @@ bool CellMLFile::isValid()
 
                     ObjRef<iface::dom::Element> domElement = cellmlDomElement->domElement();
 
-                    line = vacssService->getPositionInXML(domElement, 0,
-                                                          &column);
+                    line = vacssService->getPositionInXML(domElement, 0, &column);
 
                     // Also determine its imported file, if any
 
-                    forever {
-                        // Retrieve the CellML element's parent
+                    ObjRef<iface::cellml_api::CellMLElement> cellmlElementParent = cellmlElement->parentElement();
 
-                        ObjRef<iface::cellml_api::CellMLElement> cellmlElementParent = cellmlElement->parentElement();
-
-                        if (!cellmlElementParent)
-                            break;
-
+                    if (cellmlElementParent) {
                         // Check whether the parent is an imported file
 
                         ObjRef<iface::cellml_api::Model> importedCellMLFile = QueryInterface(cellmlElementParent);
 
-                        if (!importedCellMLFile)
-                            break;
+                        if (importedCellMLFile) {
+                            // Retrieve the imported CellML element
 
-                        // Retrieve the imported CellML element
+                            ObjRef<iface::cellml_api::CellMLElement> importedCellMLElement = importedCellMLFile->parentElement();
 
-                        ObjRef<iface::cellml_api::CellMLElement> importedCellMLElement = importedCellMLFile->parentElement();
+                            if (importedCellMLElement) {
+                                // Check whether the imported CellML element
+                                // is an import CellML element
 
-                        if (!importedCellMLElement)
-                            break;
+                                ObjRef<iface::cellml_api::CellMLImport> importCellMLElement = QueryInterface(importedCellMLElement);
 
-                        // Check whether the imported CellML element is an
-                        // import CellML element
+                                if (importCellMLElement) {
+                                    ObjRef<iface::cellml_api::URI> xlinkHref = importCellMLElement->xlinkHref();
 
-                        ObjRef<iface::cellml_api::CellMLImport> importCellMLElement = QueryInterface(importedCellMLElement);
-
-                        if (!importCellMLElement)
-                            break;
-
-                        ObjRef<iface::cellml_api::URI> xlinkHref = importCellMLElement->xlinkHref();
-
-                        importedFile = QString::fromStdWString(xlinkHref->asText());
-
-                        break;
+                                    importedFile = QString::fromStdWString(xlinkHref->asText());
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -597,7 +581,7 @@ QString CellMLFile::rdfTripleSubject(iface::cellml_api::CellMLElement *pElement)
 
         int counter = 0;
 
-        forever {
+        while (true) {
             cmetaId = QString("id_%1").arg(++counter, 5, 10, QChar('0'));
 
             if (!cmetaIds.contains(cmetaId)) {
