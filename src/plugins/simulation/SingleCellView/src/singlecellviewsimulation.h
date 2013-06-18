@@ -228,6 +228,8 @@ private:
     QList<double> mInitialConstants;
     QList<double> mInitialStates;
 
+    QList<double> mStatesWhenRun;
+
     void newIntegrationRun();
     void setupOverrides();
 

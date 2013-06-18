@@ -604,6 +604,11 @@ void SingleCellViewSimulationData::startNextRepeat()
         return;
     }
 
+    if (mCurrentRepeat == 0)
+      mStatesWhenRun = mStates;
+    else
+      mStates = mStatesWhenRun;
+
     newIntegrationRun();
 
     if (!mIntegrationRun)
