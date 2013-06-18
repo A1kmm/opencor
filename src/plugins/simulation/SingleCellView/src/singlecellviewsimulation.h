@@ -118,7 +118,6 @@ Q_SIGNALS:
                              const QList<double> algebraic);
 };
 
-
 class SingleCellViewSimulation;
 
 class SingleCellViewSimulationData : public QObject

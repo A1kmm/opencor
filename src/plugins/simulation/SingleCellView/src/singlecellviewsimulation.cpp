@@ -36,6 +36,10 @@
 #include <unistd.h>
 #endif
 
+Q_DECLARE_METATYPE(QList<double>);
+Q_DECLARE_METATYPE(QPointer<OpenCOR::SingleCellView::SingleCellViewSimulationData>);
+Q_DECLARE_METATYPE(QPointer<OpenCOR::SingleCellView::SingleCellViewSimulation>);
+
 
 namespace OpenCOR {
 namespace SingleCellView {
