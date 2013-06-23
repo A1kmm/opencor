@@ -836,6 +836,10 @@ SingleCellViewSimulation::SingleCellViewSimulation(const QString &pFileName,
     mData(new SingleCellViewSimulationData(pRuntime)),
     mResults(new SingleCellViewSimulationResults(pRuntime, this))
 {
+    qRegisterMetaType<QList<double> >("QList<double>");
+    qRegisterMetaType<QPointer<OpenCOR::SingleCellView::SingleCellViewSimulationData> >("QPointer<OpenCOR::SingleCellView::SingleCellViewSimulationData>");
+    qRegisterMetaType<QPointer<OpenCOR::SingleCellView::SingleCellViewSimulation> >("QPointer<OpenCOR::SingleCellView::SingleCellViewSimulation>");
+
     // Keep track of any error occurring in our data
     connect(mData, SIGNAL(error(const QString &)),
             this, SLOT(reemitError(const QString &)));
