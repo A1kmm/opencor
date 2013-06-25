@@ -30,7 +30,8 @@ namespace CellMLModelRepository {
 
 CellMLModelRepositoryWindow::CellMLModelRepositoryWindow(QWidget *pParent) :
     OrganisationWidget(pParent),
-    mGui(new Ui::CellMLModelRepositoryWindow)
+    mGui(new Ui::CellMLModelRepositoryWindow),
+    mModelListRequested(false)
 {
     // Set up the GUI
 
@@ -55,6 +56,12 @@ CellMLModelRepositoryWindow::CellMLModelRepositoryWindow(QWidget *pParent) :
     connect(mCellMLModelRepositoryWidget, SIGNAL(customContextMenuRequested(const QPoint &)),
             this, SLOT(showCustomContextMenu(const QPoint &)));
 
+    // Keep track of the window's visibility, so that we can request the list of
+    // models, if necessary
+
+    connect(this, SIGNAL(visibilityChanged(bool)),
+            this, SLOT(retrieveModelList(const bool &)));
+
     // Create a network access manager so that we can then retrieve a list of
     // CellML models from the CellML Model Repository
 
@@ -65,10 +72,6 @@ CellMLModelRepositoryWindow::CellMLModelRepositoryWindow(QWidget *pParent) :
 
     connect(mNetworkAccessManager, SIGNAL(finished(QNetworkReply *)),
             this, SLOT(finished(QNetworkReply *)) );
-
-    // Get the list of CellML models
-
-    on_refreshButton_clicked();
 }
 
 //==============================================================================
@@ -127,10 +130,14 @@ void CellMLModelRepositoryWindow::outputModelList(const QStringList &pModelList)
             QString dots = (errorMsg[errorMsg.size()-1] == '.')?"..":"...";
 
             contents = leadingSpaces+tr("<strong>Error:</strong> ")+errorMsg+dots;
-        } else {
+        } else if (mModelListRequested) {
             // The list is still being loaded, so...
 
             contents = leadingSpaces+tr("Please wait while the list of CellML models is being loaded...");
+        } else {
+            // We have yet to request the list of models, so...
+
+            contents = QString();
         }
     } else {
         // No model could be found, so...
@@ -170,6 +177,8 @@ void CellMLModelRepositoryWindow::on_refreshButton_clicked()
     // Output the message telling the user that the list is being downloaded
     // Note: to clear mModelNames ensures that we get the correct message from
     //       outputModelList...
+
+    mModelListRequested = true;
 
     mModelNames.clear();
 
@@ -258,6 +267,17 @@ void CellMLModelRepositoryWindow::showCustomContextMenu(const QPoint &) const
     menu.addAction(mGui->actionCopy);
 
     menu.exec(QCursor::pos());
+}
+
+//==============================================================================
+
+void CellmlModelRepositoryWindow::retrieveModelList(const bool &pVisible)
+{
+    // Retrieve the list of models, if we are becoming visible and the list of
+    // models has never been requested before
+
+    if (pVisible && !mModelListRequested)
+        on_refreshButton_clicked();
 }
 
 //==============================================================================
