@@ -271,7 +271,7 @@ void CellMLModelRepositoryWindow::showCustomContextMenu(const QPoint &) const
 
 //==============================================================================
 
-void CellmlModelRepositoryWindow::retrieveModelList(const bool &pVisible)
+void CellMLModelRepositoryWindow::retrieveModelList(const bool &pVisible)
 {
     // Retrieve the list of models, if we are becoming visible and the list of
     // models has never been requested before
