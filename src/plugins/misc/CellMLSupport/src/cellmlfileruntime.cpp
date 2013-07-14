@@ -24,7 +24,7 @@ namespace CellMLSupport {
 
 CellMLFileRuntimeCompiledModelParameter::CellMLFileRuntimeCompiledModelParameter
 (
- const ModelParameterType &pType,
+ const ParameterType &pType,
  const int &pIndex
 ) :
     mType(pType),
@@ -35,7 +35,7 @@ CellMLFileRuntimeCompiledModelParameter::CellMLFileRuntimeCompiledModelParameter
 void
 CellMLFileRuntimeCompiledModelParameter::update
 (
- const ModelParameterType &pType,
+ const ParameterType &pType,
  const int &pIndex
 )
 {
@@ -45,7 +45,7 @@ CellMLFileRuntimeCompiledModelParameter::update
 
 //==============================================================================
 
-CellMLFileRuntimeModelParameter::CellMLFileRuntimeModelParameter
+CellMLFileRuntimeParameter::CellMLFileRuntimeParameter
 (
  iface::cellml_api::CellMLVariable* pVariable,
  int pDegree
@@ -54,12 +54,12 @@ CellMLFileRuntimeModelParameter::CellMLFileRuntimeModelParameter
 {
 }
 
-QString CellMLFileRuntimeModelParameter::name() const
+QString CellMLFileRuntimeParameter::name() const
 {
     return QString::fromStdWString(mVariable->name());
 }
 
-QString CellMLFileRuntimeModelParameter::unit() const
+QString CellMLFileRuntimeParameter::unit() const
 {
     return QString::fromStdWString(mVariable->unitsName());
 }
@@ -76,7 +76,7 @@ QString CellMLFileRuntimeModelParameter::unit() const
 //             Component A is encapsulated under Component B.
 //    If Model A, Component A and Model B, Component B both have variables, this
 //    function will call them both "A".
-QString CellMLFileRuntimeModelParameter::component() const
+QString CellMLFileRuntimeParameter::component() const
 {
     ObjRef<iface::cellml_api::CellMLComponent> component =
         QueryInterface(mVariable->parentElement());
@@ -111,9 +111,9 @@ QString CellMLFileRuntimeModelParameter::component() const
 }
 
 void
-CellMLFileRuntimeModelParameter::DAEData
+CellMLFileRuntimeParameter::DAEData
 (
- const CellMLFileRuntimeCompiledModelParameter::ModelParameterType &pType,
+ const CellMLFileRuntimeCompiledModelParameter::ParameterType &pType,
  const int &pIndex
 )
 {
@@ -126,9 +126,9 @@ CellMLFileRuntimeModelParameter::DAEData
 }
 
 void
-CellMLFileRuntimeModelParameter::ODEData
+CellMLFileRuntimeParameter::ODEData
 (
- const CellMLFileRuntimeCompiledModelParameter::ModelParameterType &pType,
+ const CellMLFileRuntimeCompiledModelParameter::ParameterType &pType,
  const int &pIndex
 )
 {
@@ -144,7 +144,7 @@ CellMLFileRuntimeModelParameter::ODEData
 
 CellMLFileRuntime::CellMLFileRuntime() :
     mVariableOfIntegration(0),
-    mModelParameters(CellMLFileRuntimeModelParameters())
+    mParameters(CellMLFileRuntimeParameters())
 {
     // Reset (initialise, here) our properties
     reset(true);
@@ -191,11 +191,11 @@ CellMLFileIssues CellMLFileRuntime::issues() const
 
 //==============================================================================
 
-CellMLFileRuntimeModelParameters CellMLFileRuntime::modelParameters() const
+CellMLFileRuntimeParameters CellMLFileRuntime::parameters() const
 {
-    // Return the model parameter(s)
+    // Return the parameter(s)
 
-    return mModelParameters;
+    return mParameters;
 }
 
 //==============================================================================
@@ -224,7 +224,7 @@ void CellMLFileRuntime::reset(const bool &pResetIssues)
         mIssues.clear();
 
     mVariableOfIntegration.clear();
-    mModelParameters.clear();
+    mParameters.clear();
 }
 
 //==============================================================================
@@ -267,7 +267,7 @@ void CellMLFileRuntime::ensureODECompiledModel(bool pDebug)
 
     if (mODEModel) {
         ObjRef<iface::cellml_services::CodeInformation> codeInfo(mODEModel->codeInformation());
-        compiledParamsFromCodeInformation(&CellMLFileRuntimeModelParameter::ODEData, codeInfo.getPointer());
+        compiledParamsFromCodeInformation(&CellMLFileRuntimeParameter::ODEData, codeInfo.getPointer());
     }
 
     // If mIssues is non-empty, there was a problem generating / compiling code.
@@ -281,8 +281,8 @@ void CellMLFileRuntime::ensureODECompiledModel(bool pDebug)
 
 void CellMLFileRuntime::compiledParamsFromCodeInformation
 (
- void (CellMLFileRuntimeModelParameter::*setter)(const CellMLFileRuntimeCompiledModelParameter::
-                                                 ModelParameterType &pType, const int &pIndex),
+ void (CellMLFileRuntimeParameter::*setter)(const CellMLFileRuntimeCompiledModelParameter::
+                                            ParameterType &pType, const int &pIndex),
  iface::cellml_services::CodeInformation* codeInfo
 )
 {
@@ -292,27 +292,27 @@ void CellMLFileRuntime::compiledParamsFromCodeInformation
              ct; ct = cti->nextComputationTarget()) {
             // TODO index these so we don't have to search them all.
             ObjRef<iface::cellml_api::CellMLVariable> vwant = ct->variable();
-            foreach (QSharedPointer<CellMLFileRuntimeModelParameter> p, mModelParameters) {
+            foreach (QSharedPointer<CellMLFileRuntimeParameter> p, mParameters) {
                 if (p->variable() == vwant && p->degree() == static_cast<int>(ct->degree())) {
-                    CellMLFileRuntimeCompiledModelParameter::ModelParameterType modelParameterType;
+                    CellMLFileRuntimeCompiledModelParameter::ParameterType parameterType;
                     switch (ct->type()) {
                     case iface::cellml_services::VARIABLE_OF_INTEGRATION:
-                        modelParameterType = CellMLFileRuntimeCompiledModelParameter::Voi;
+                        parameterType = CellMLFileRuntimeCompiledModelParameter::Voi;
                         break;
                     case iface::cellml_services::CONSTANT: {
                         if (vwant->initialValue().empty())
                             // The computed target doesn't have an initial value, so it must
                             // be a 'computed' constant
-                            modelParameterType = CellMLFileRuntimeCompiledModelParameter::ComputedConstant;
+                            parameterType = CellMLFileRuntimeCompiledModelParameter::ComputedConstant;
                         else
                             // The computed target has an initial value, so it must be a
                             // 'proper' constant
-                            modelParameterType = CellMLFileRuntimeCompiledModelParameter::Constant;
+                            parameterType = CellMLFileRuntimeCompiledModelParameter::Constant;
                         break;
                     }
                     case iface::cellml_services::STATE_VARIABLE:
                     case iface::cellml_services::PSEUDOSTATE_VARIABLE:
-                        modelParameterType = CellMLFileRuntimeCompiledModelParameter::State;
+                        parameterType = CellMLFileRuntimeCompiledModelParameter::State;
                         break;
                     case iface::cellml_services::ALGEBRAIC:
                         // We are dealing with either a 'proper' algebraic variable or a
@@ -321,17 +321,17 @@ void CellMLFileRuntime::compiledParamsFromCodeInformation
                         //       dealing with a 'proper' algebraic variable otherwise we
                         //       are dealing with a rate variable...
                         if (ct->degree())
-                            modelParameterType = CellMLFileRuntimeCompiledModelParameter::Rate;
+                            parameterType = CellMLFileRuntimeCompiledModelParameter::Rate;
                         else
-                            modelParameterType = CellMLFileRuntimeCompiledModelParameter::Algebraic;
+                            parameterType = CellMLFileRuntimeCompiledModelParameter::Algebraic;
                         break;
                     default:
                         // We are dealing with a type of computed target which is of no
                         // interest to us, so...
-                        modelParameterType = CellMLFileRuntimeCompiledModelParameter::Undefined;
+                        parameterType = CellMLFileRuntimeCompiledModelParameter::Undefined;
                     }
                     
-                    (p.data() ->* setter)(modelParameterType, ct->assignedIndex());
+                    (p.data() ->* setter)(parameterType, ct->assignedIndex());
                     break;
                 }
             }
@@ -363,7 +363,7 @@ void CellMLFileRuntime::ensureDAECompiledModel(bool pDebug)
 
     if (mDAEModel) {
         ObjRef<iface::cellml_services::CodeInformation> codeInfo(mDAEModel->codeInformation());
-        compiledParamsFromCodeInformation(&CellMLFileRuntimeModelParameter::DAEData, codeInfo);
+        compiledParamsFromCodeInformation(&CellMLFileRuntimeParameter::DAEData, codeInfo);
     }
 
     // If mIssues is non-empty, there was a problem generating / compiling code.
@@ -413,29 +413,28 @@ QString CellMLFileRuntime::functionCode(const QString &pFunctionSignature,
 
 //==============================================================================
 
-bool sortModelParameters(QSharedPointer<CellMLFileRuntimeModelParameter> pModelParameter1,
-                         QSharedPointer<CellMLFileRuntimeModelParameter> pModelParameter2)
+bool sortParameters(QSharedPointer<CellMLFileRuntimeParameter> pParameter1,
+                    QSharedPointer<CellMLFileRuntimeParameter> pParameter2)
 {
-    // Determine which of the two model parameters should be first
+    // Determine which of the two parameters should be first
     // Note: the two comparisons which result we return are case insensitive,
-    //       so that it's easier for people to search a model parameter...
+    //       so that it's easier for people to search a parameter...
 
-    if (!pModelParameter1->component().compare(pModelParameter2->component())) {
-        // The model parameters are in the same component, so check their
-        // name
+    if (!pParameter1->component().compare(pParameter2->component())) {
+        // The parameters are in the same component, so check their name
 
-        if (!pModelParameter1->name().compare(pModelParameter2->name()))
-            // The model parameters have the same name, so check their degree
+        if (!pParameter1->name().compare(pParameter2->name()))
+            // The parameters have the same name, so check their degree
 
-            return pModelParameter1->degree() < pModelParameter2->degree();
+            return pParameter1->degree() < pParameter2->degree();
         else
-            // The model parameters have different names, so...
+            // The parameters have different names, so...
 
-            return pModelParameter1->name().compare(pModelParameter2->name(), Qt::CaseInsensitive) < 0;
+            return pParameter1->name().compare(pParameter2->name(), Qt::CaseInsensitive) < 0;
     } else {
-        // The model parameters are in different components, so...
+        // The parameters are in different components, so...
 
-        return pModelParameter1->component().compare(pModelParameter2->component(), Qt::CaseInsensitive) < 0;
+        return pParameter1->component().compare(pParameter2->component(), Qt::CaseInsensitive) < 0;
     }
 }
 
@@ -473,17 +472,17 @@ CellMLFileRuntime * CellMLFileRuntime::update(CellMLFile *pCellMLFile)
 
         // Keep track of the model parameter
 
-        QSharedPointer<CellMLFileRuntimeModelParameter> modelParameter =
-            QSharedPointer<CellMLFileRuntimeModelParameter>
-            (new CellMLFileRuntimeModelParameter(variable, computationTarget->degree()));
+        QSharedPointer<CellMLFileRuntimeParameter> parameter =
+            QSharedPointer<CellMLFileRuntimeParameter>
+            (new CellMLFileRuntimeParameter(variable, computationTarget->degree()));
 
         if (computationTarget->type() == iface::cellml_services::VARIABLE_OF_INTEGRATION)
-            mVariableOfIntegration = modelParameter;
+            mVariableOfIntegration = parameter;
         else
-            mModelParameters.append(modelParameter);
+            mParameters.append(parameter);
     }
 
-    qSort(mModelParameters.begin(), mModelParameters.end(), sortModelParameters);
+    qSort(mParameters.begin(), mParameters.end(), sortParameters);
 
     // We are done, so return ourselves
     return this;
@@ -491,7 +490,7 @@ CellMLFileRuntime * CellMLFileRuntime::update(CellMLFile *pCellMLFile)
 
 //==============================================================================
 
-QSharedPointer<CellMLFileRuntimeModelParameter> CellMLFileRuntime::variableOfIntegration() const
+QSharedPointer<CellMLFileRuntimeParameter> CellMLFileRuntime::variableOfIntegration() const
 {
     // Return our variable of integration, if any.
     return mVariableOfIntegration;

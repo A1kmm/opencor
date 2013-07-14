@@ -104,6 +104,13 @@ mGui->actionPreferences->setEnabled(false);
 mGui->actionPreferences->setVisible(false);
 //---GRY--- END
 
+    // Set the role of some of our menu items, so that OS X can move them into
+    // the application menu
+
+    mGui->actionQuit->setMenuRole(QAction::QuitRole);
+    mGui->actionPreferences->setMenuRole(QAction::PreferencesRole);
+    mGui->actionAbout->setMenuRole(QAction::AboutRole);
+
     // Title of our main window
     // Note: we don't set it in our .ui file since this will require
     //       'translating' it in other languages...
@@ -128,9 +135,9 @@ mGui->actionPreferences->setVisible(false);
 
     // Some connections to handle our various menu items
 
-    connect(mGui->actionExit, SIGNAL(triggered(bool)),
+    connect(mGui->actionQuit, SIGNAL(triggered()),
             this, SLOT(close()));
-    connect(mGui->actionResetAll, SIGNAL(triggered(bool)),
+    connect(mGui->actionResetAll, SIGNAL(triggered()),
             this, SLOT(resetAll()));
 
     // Set the shortcuts of some actions
@@ -142,11 +149,11 @@ mGui->actionPreferences->setVisible(false);
     //       get shown in the menu item, not to mention that we would also like
     //       to support Ctrl+Q, so...
 
-    mGui->actionExit->setShortcuts(QList<QKeySequence>()
+    mGui->actionQuit->setShortcuts(QList<QKeySequence>()
                                        << QKeySequence(Qt::ALT|Qt::Key_F4)
                                        << QKeySequence(Qt::CTRL|Qt::Key_Q));
 #elif defined(Q_OS_LINUX) || defined(Q_OS_MAC)
-    mGui->actionExit->setShortcut(QKeySequence::Quit);
+    mGui->actionQuit->setShortcut(QKeySequence::Quit);
 #else
     #error Unsupported platform
 #endif
@@ -158,6 +165,11 @@ mGui->actionPreferences->setVisible(false);
 
     new QShortcut(QKeySequence("Ctrl+M"),
                   this, SLOT(showMinimized()));
+
+    // And another special shortcut to have OpenCOR resume from full screen mode
+
+    new QShortcut(Qt::Key_Escape,
+                  this, SLOT(resumeFromFullScreen()));
 #endif
 
     mGui->actionFullScreen->setShortcut(QKeySequence::FullScreen);
@@ -1423,6 +1435,16 @@ void MainWindow::updateDockWidgetsVisibility()
     // Update the checked state of our docked widgets action
 
     mGui->actionDockedWidgets->setChecked(mDockedWidgetsVisible);
+}
+
+//==============================================================================
+
+void MainWindow::resumeFromFullScreen()
+{
+    // Resume from full screen mode, if appropriate
+
+    if (isFullScreen())
+        on_actionFullScreen_triggered();
 }
 
 //==============================================================================

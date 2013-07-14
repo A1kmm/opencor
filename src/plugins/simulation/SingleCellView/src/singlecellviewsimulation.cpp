@@ -565,12 +565,12 @@ void SingleCellViewSimulationData::setupOverrides()
 
 //==============================================================================
 
-/**
- * Sends a modified signal if and only if any data has been changed since the
- * last time reset() was called.
- */
-void SingleCellViewSimulationData::checkForModifications()
+bool SingleCellViewSimulationData::isModified() const
 {
+    // Check whether any of our constants or states has been modified
+    // Note: we start with our states since they are more likely to be modified
+    //       than our constants...
+
     iface::cellml_services::CellMLCompiledModel*
         compModel(isDAETypeSolver() ?
                   static_cast<iface::cellml_services::CellMLCompiledModel*>
@@ -581,23 +581,26 @@ void SingleCellViewSimulationData::checkForModifications()
         (compModel->codeInformation());
     
     bool foundChange = false;
-    for (unsigned int i = 0; i < codeInfo->constantIndexCount(); i++)
+    for (int i = 0; i < mInitialConstants.size(); i++)
         if (!qIsFinite(mInitialConstants[i]) ||
-            mInitialConstants[i] != mConstants[i]) {
-            foundChange = true;
-            break;
-        }
+            mInitialConstants[i] != mConstants[i])
+            return true;
     if (!foundChange)
-        for (unsigned int i = 0; i < codeInfo->rateIndexCount(); i++)
+        for (int i = 0; i < mInitialStates.size(); i++)
             if (!qIsFinite(mInitialStates[i]) ||
-                mInitialStates[i] != mStates[i]) {
-                foundChange = true;
-                break;
-            }
-    if (foundChange) {
-        emit modified(this, true);
-        return;
-    }
+                mInitialStates[i] != mStates[i])
+                return true;
+
+    return false;
+}
+
+/**
+ * Sends a modified signal if and only if any data has been changed since the
+ * last time reset() was called.
+ */
+void SingleCellViewSimulationData::checkForModifications()
+{
+    emit modified(this, isModified());
 }
 
 void SingleCellViewSimulationData::startNextRepeat()
@@ -766,13 +769,13 @@ bool SingleCellViewSimulationResults::exportToCsv(const QString &pFileName) cons
                       mRuntime->variableOfIntegration()->name(),
                       mRuntime->variableOfIntegration()->unit());
 
-    for (int i = 0, iMax = mRuntime->modelParameters().count(); i < iMax; ++i) {
-        QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter> modelParameter
-            (mRuntime->modelParameters()[i]);
+    for (int i = 0, iMax = mRuntime->parameters().count(); i < iMax; ++i) {
+        QSharedPointer<CellMLSupport::CellMLFileRuntimeParameter> parameter
+            (mRuntime->parameters()[i]);
 
-        out << "," << Header.arg(modelParameter->component(),
-                                 modelParameter->name()+QString(modelParameter->degree(), '\''),
-                                 modelParameter->unit());
+        out << "," << Header.arg(parameter->component(),
+                                 parameter->name()+QString(parameter->degree(), '\''),
+                                 parameter->unit());
     }
 
     out << "\n";
@@ -783,11 +786,11 @@ bool SingleCellViewSimulationResults::exportToCsv(const QString &pFileName) cons
         for (int k = 0; k < mPoints[j].size(); ++k) {
             out << mPoints[j][k];
 
-            for (int i = 0, iMax = mRuntime->modelParameters().count(); i < iMax; ++i) {
-                QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter> modelParameter =
-                    mRuntime->modelParameters()[i];
+            for (int i = 0, iMax = mRuntime->parameters().count(); i < iMax; ++i) {
+                QSharedPointer<CellMLSupport::CellMLFileRuntimeParameter> parameter =
+                    mRuntime->parameters()[i];
                 QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> compiledParameter =
-                    isDAEType ? modelParameter->DAEData() : modelParameter->ODEData();
+                    isDAEType ? parameter->DAEData() : parameter->ODEData();
 
                 switch (compiledParameter->type()) {
                 case CellMLSupport::CellMLFileRuntimeCompiledModelParameter::Constant:

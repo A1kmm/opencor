@@ -179,6 +179,7 @@ public:
 
     void recomputeComputedConstantsAndVariables();
 
+    bool isModified() const;
     void checkForModifications();
 
     SimulatorState state() const { return mState; }

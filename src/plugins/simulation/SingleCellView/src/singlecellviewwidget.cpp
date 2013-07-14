@@ -74,12 +74,12 @@ SingleCellViewWidgetCurveData::SingleCellViewWidgetCurveData
 (
  const QString &pFileName,
  SingleCellViewSimulation *pSimulation,
- QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter> pModelParameter
+ QSharedPointer<CellMLSupport::CellMLFileRuntimeParameter> pParameter
 ) :
     mFileName(pFileName),
     mSimulation(pSimulation),
-    mModelParameterY(pSimulation->data()->isDAETypeSolver() ?
-                     pModelParameter->DAEData() : pModelParameter->ODEData()),
+    mParameterY(pSimulation->data()->isDAETypeSolver() ?
+                pParameter->DAEData() : pParameter->ODEData()),
     mAttached(true), mPlottedCurve(0), mPlottedPoint(0)
 {
   int repeats = mSimulation->data()->solverProperties()["nrepeats"].toInt();
@@ -102,11 +102,11 @@ QString SingleCellViewWidgetCurveData::fileName() const
 //==============================================================================
 
 QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter>
-SingleCellViewWidgetCurveData::modelParameter() const
+SingleCellViewWidgetCurveData::parameter() const
 {
-    // Return our model parameter
+    // Return our parameter
 
-    return mModelParameterY;
+    return mParameterY;
 }
 
 //==============================================================================
@@ -378,10 +378,10 @@ SingleCellViewWidget::SingleCellViewWidget(SingleCellViewPlugin *pPluginParent,
     connect(mContentsWidget->graphPanelsWidget(), SIGNAL(removeGraphPanelsEnabled(const bool &)),
             mGui->actionRemove, SLOT(setEnabled(bool)));
 
-    // Keep track of which model parameters to show/hide
+    // Keep track of which parameters to show/hide
 
-    connect(mContentsWidget->informationWidget()->parametersWidget(), SIGNAL(showModelParameter(const QString &, QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter>, const bool &)),
-            this, SLOT(showModelParameter(const QString &, QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter>, const bool &)));
+    connect(mContentsWidget->informationWidget()->parametersWidget(), SIGNAL(showParameter(const QString &, QSharedPointer<CellMLSupport::CellMLFileRuntimeParameter>, const bool &)),
+            this, SLOT(showParameter(const QString &, QSharedPointer<CellMLSupport::CellMLFileRuntimeParameter>, const bool &)));
 
     // Create and add our invalid simulation message widget
     mErrorType = SingleCellViewWidget::General; // To avoid undefined memory usage.
@@ -765,7 +765,7 @@ void SingleCellViewWidget::initialize(const QString &pFileName)
 
     // Retrieve our variable of integration, if any
 
-    QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter> variableOfIntegration;
+    QSharedPointer<CellMLSupport::CellMLFileRuntimeParameter> variableOfIntegration;
     if (validCellMLFileRuntime)
         variableOfIntegration = cellmlFileRuntime->variableOfIntegration();
 
@@ -996,20 +996,20 @@ void SingleCellViewWidget::finalize(const QString &pFileName)
     // Remove our curves' data associated with the given file name, if any
 
     QList<QString> fileNames = QList<QString>();
-    QList<QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> > modelParameters =
+    QList<QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> > parameters =
         QList<QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> >();
 
     foreach (SingleCellViewWidgetCurveData *curveData, mCurvesData)
         if (!curveData->fileName().compare(pFileName)) {
-            // Keep track of the file name and model parameter of the curve data
+            // Keep track of the file name and parameter of the curve data
             fileNames << curveData->fileName();
-            modelParameters << curveData->modelParameter();
+            parameters << curveData->parameter();
 
             delete curveData;
         }
 
     for (int i = 0, iMax = fileNames.count(); i < iMax; ++i)
-        mCurvesData.remove(modelParameterKey(fileNames[i], modelParameters[i]));
+        mCurvesData.remove(parameterKey(fileNames[i], parameters[i]));
 
     // Remove various information associated with the given file name
 
@@ -1538,28 +1538,28 @@ void SingleCellViewWidget::solversPropertyChanged(Core::Property *pProperty)
 
 //==============================================================================
 
-QString SingleCellViewWidget::modelParameterKey(const QString pFileName,
+QString SingleCellViewWidget::parameterKey(const QString pFileName,
                                                 QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter>
-                                                pModelParameter)
+                                                pParameter)
 {
-    // Return the for the given model parameter
-    return pFileName+"|"+QString::number(pModelParameter->type())+"|"+QString::number(pModelParameter->index());
+    // Return the for the given parameter
+    return pFileName+"|"+QString::number(pParameter->type())+"|"+QString::number(pParameter->index());
 }
 
 //==============================================================================
 
-void SingleCellViewWidget::showModelParameter
+void SingleCellViewWidget::showParameter
 (
  const QString &pFileName,
- QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter> pModelParameter,
+ QSharedPointer<CellMLSupport::CellMLFileRuntimeParameter> pParameter,
  const bool &pShow
 )
 {
     // Determine the key for the given parameter
 
-    QString key = modelParameterKey(pFileName,
+    QString key = parameterKey(pFileName,
                                     mSimulation->data()->isDAETypeSolver() ? 
-                                      pModelParameter->DAEData() : pModelParameter->ODEData());
+                                      pParameter->DAEData() : pParameter->ODEData());
 
     // Retrieve the curve data associated with the key, if any
 
@@ -1576,7 +1576,7 @@ void SingleCellViewWidget::showModelParameter
         // We don't have a curve, but we want one so create one, as well as some
         // data for it
 
-        SingleCellViewWidgetCurveData *curveData = new SingleCellViewWidgetCurveData(pFileName, mSimulation, pModelParameter);
+        SingleCellViewWidgetCurveData *curveData = new SingleCellViewWidgetCurveData(pFileName, mSimulation, pParameter);
         curveData->setAttached(pShow);
         curveData->updateCurves(mActiveGraphPanel->plot(), true);
 
@@ -1608,7 +1608,17 @@ void SingleCellViewWidget::updateResults(SingleCellViewSimulation *pSimulation,
 
     if (simulation == mSimulation) {
         // We are dealing with the active simulation, so update our curves and
-        // progress bar, and enable/disable the export to CSV
+        // progress bar, and enable/disable the reset action
+
+        // Enable/disable the reset action
+        // Note: normally, our simulation worker would, for each point interval,
+        //       call SingleCellViewSimulationData::checkForModifications(),
+        //       but this would result in a signal being emitted (and then
+        //       handled by SingleCellViewWidget::simulationDataModified()),
+        //       resulting in some time overhead, so we check things here
+        //       instead...
+
+        mGui->actionReset->setEnabled(mSimulation->data()->isModified());
 
         // Update our progress bar
         mProgressBarWidget->setValue(mSimulation->progress());

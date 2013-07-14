@@ -45,7 +45,7 @@ class CellMLFile;
 class CELLMLSUPPORT_EXPORT CellMLFileRuntimeCompiledModelParameter : public QSharedData
 {
 public:
-    enum ModelParameterType {
+    enum ParameterType {
         Voi,
         Constant,
         ComputedConstant,
@@ -56,24 +56,24 @@ public:
     };
 
     explicit CellMLFileRuntimeCompiledModelParameter
-        (const ModelParameterType &pType, const int &pIndex);
-    void update(const ModelParameterType &pType, const int &pIndex);
+        (const ParameterType &pType, const int &pIndex);
+    void update(const ParameterType &pType, const int &pIndex);
 
-    ModelParameterType type() const { return mType; }
+    ParameterType type() const { return mType; }
     int index() const { return mIndex; }
 
 private:
-    ModelParameterType mType;
+    ParameterType mType;
     int mIndex;
 };
 
-class CELLMLSUPPORT_EXPORT CellMLFileRuntimeModelParameter : public QSharedData
+class CELLMLSUPPORT_EXPORT CellMLFileRuntimeParameter : public QSharedData
 {
 public:
-    explicit CellMLFileRuntimeModelParameter(iface::cellml_api::CellMLVariable* pVariable,
-                                             int );
-    void DAEData(const CellMLFileRuntimeCompiledModelParameter::ModelParameterType &pType, const int &pIndex);
-    void ODEData(const CellMLFileRuntimeCompiledModelParameter::ModelParameterType &pType, const int &pIndex);
+    explicit CellMLFileRuntimeParameter(iface::cellml_api::CellMLVariable* pVariable,
+                                        int );
+    void DAEData(const CellMLFileRuntimeCompiledModelParameter::ParameterType &pType, const int &pIndex);
+    void ODEData(const CellMLFileRuntimeCompiledModelParameter::ParameterType &pType, const int &pIndex);
     QSharedPointer<CellMLFileRuntimeCompiledModelParameter> DAEData() {
         return mDAEData;
     }
@@ -96,7 +96,7 @@ private:
 
 //==============================================================================
 
-typedef QList<QSharedPointer<CellMLFileRuntimeModelParameter> > CellMLFileRuntimeModelParameters;
+typedef QList<QSharedPointer<CellMLFileRuntimeParameter> > CellMLFileRuntimeParameters;
 
 //==============================================================================
 
@@ -112,9 +112,9 @@ public:
     bool isValid() const;
 
     CellMLFileIssues issues() const;
-    CellMLFileRuntimeModelParameters modelParameters() const;
+    CellMLFileRuntimeParameters parameters() const;
     CellMLFileRuntime * update(CellMLFile *pCellMLFile);
-    QSharedPointer<CellMLFileRuntimeModelParameter> variableOfIntegration() const;
+    QSharedPointer<CellMLFileRuntimeParameter> variableOfIntegration() const;
     iface::cellml_services::ODESolverCompiledModel* odeCompiledModel() {
       return mODEModel;
     }
@@ -133,8 +133,8 @@ private:
 
     CellMLFileIssues mIssues;
 
-    QSharedPointer<CellMLFileRuntimeModelParameter> mVariableOfIntegration;
-    CellMLFileRuntimeModelParameters mModelParameters;
+    QSharedPointer<CellMLFileRuntimeParameter> mVariableOfIntegration;
+    CellMLFileRuntimeParameters mParameters;
 
     void reset(const bool &pResetIssues);
     void resetODECodeInformation();
@@ -149,7 +149,7 @@ private:
                          const QString &pFunctionBody,
                          const bool &pHasDefines = false);
 
-    void compiledParamsFromCodeInformation(void (CellMLFileRuntimeModelParameter::*setter)(const CellMLFileRuntimeCompiledModelParameter::ModelParameterType &pType, const int &pIndex), iface::cellml_services::CodeInformation*);
+    void compiledParamsFromCodeInformation(void (CellMLFileRuntimeParameter::*setter)(const CellMLFileRuntimeCompiledModelParameter::ParameterType &pType, const int &pIndex), iface::cellml_services::CodeInformation*);
 };
 
 //==============================================================================

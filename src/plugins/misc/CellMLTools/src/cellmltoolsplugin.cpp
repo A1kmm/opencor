@@ -56,9 +56,9 @@ void CellMLToolsPlugin::initialize()
 
     // Some connections to handle our different Tools | Export To actions
 
-    connect(mExportToCellML10Action, SIGNAL(triggered(bool)),
+    connect(mExportToCellML10Action, SIGNAL(triggered()),
             this, SLOT(exportToCellML10()));
-    connect(mExportToCellML11Action, SIGNAL(triggered(bool)),
+    connect(mExportToCellML11Action, SIGNAL(triggered()),
             this, SLOT(exportToCellML11()));
 
     // Set our settings

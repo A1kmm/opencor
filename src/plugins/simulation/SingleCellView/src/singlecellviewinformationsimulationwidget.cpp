@@ -76,7 +76,7 @@ void SingleCellViewInformationSimulationWidget::retranslateUi()
 
     // Retranslate the tool tip of all our properties
 
-    updatePropertiesToolTip();
+    updateToolTips();
 }
 
 //==============================================================================
@@ -101,7 +101,7 @@ void SingleCellViewInformationSimulationWidget::updatePropertyToolTip(Core::Prop
 
 //==============================================================================
 
-void SingleCellViewInformationSimulationWidget::updatePropertiesToolTip()
+void SingleCellViewInformationSimulationWidget::updateToolTips()
 {
     // Update the tool tip of all our properties
 
@@ -115,11 +115,6 @@ void SingleCellViewInformationSimulationWidget::initialize(const QString &pFileN
                                                            CellMLSupport::CellMLFileRuntime *pRuntime,
                                                            SingleCellViewSimulationData *pSimulationData)
 {
-    // Make sure that we have a CellML file runtime
-
-    if (!pRuntime)
-        return;
-
     // Retrieve and initialise our GUI state
 
     setGuiState(mGuiStates.contains(pFileName)?
@@ -141,7 +136,7 @@ void SingleCellViewInformationSimulationWidget::initialize(const QString &pFileN
 
     // Update the tool tip of all our properties
 
-    updatePropertiesToolTip();
+    updateToolTips();
 }
 
 //==============================================================================

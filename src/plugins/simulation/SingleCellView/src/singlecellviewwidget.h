@@ -47,7 +47,7 @@ namespace Core {
 //==============================================================================
 
 namespace CellMLSupport {
-    class CellMLFileRuntimeModelParameter;
+    class CellMLFileRuntimeParameter;
     class CellMLFileRuntimeCompiledModelParameter;
 }   // namespace CellMLSupport
 
@@ -81,12 +81,12 @@ class SingleCellViewWidgetCurveData
 public:
     SingleCellViewWidgetCurveData(const QString &pFileName,
                                   SingleCellViewSimulation *pSimulation,
-                                  QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter>
+                                  QSharedPointer<CellMLSupport::CellMLFileRuntimeParameter>
                                     pModelParameter);
 
     QString fileName() const;
 
-    QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> modelParameter() const;
+    QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> parameter() const;
 
     const QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> > curves() const;
     QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> > curves();
@@ -109,13 +109,13 @@ public:
 
     QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> modelParameterY()
     {
-        return mModelParameterY;
+        return mParameterY;
     }
 
 private:
     QString mFileName;
     SingleCellViewSimulation *mSimulation;
-    QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> mModelParameterY;
+    QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter> mParameterY;
     QList<QSharedPointer<SingleCellViewGraphPanelPlotCurve> > mCurves;
     bool mAttached;
     qulonglong mPlottedCurve, mPlottedPoint;
@@ -260,7 +260,7 @@ private:
                        const bool &pReplot = false);
     void checkResults(SingleCellViewSimulation *pSimulation);
 
-    QString modelParameterKey(const QString pFileName,
+    QString parameterKey(const QString pFileName,
                               QSharedPointer<CellMLSupport::CellMLFileRuntimeCompiledModelParameter>
                               pModelParameter);
 
@@ -300,9 +300,9 @@ private Q_SLOTS:
     void simulationPropertyChanged(Core::Property *pProperty, bool pNeedReset = true);
     void solversPropertyChanged(Core::Property *pProperty);
 
-    void showModelParameter(const QString &pFileName,
-                            QSharedPointer<CellMLSupport::CellMLFileRuntimeModelParameter> pParameter,
-                            const bool &pShow);
+    void showParameter(const QString &pFileName,
+                            QSharedPointer<CellMLSupport::CellMLFileRuntimeParameter> pParameter,
+                       const bool &pShow);
 
     void callCheckResults();
 };

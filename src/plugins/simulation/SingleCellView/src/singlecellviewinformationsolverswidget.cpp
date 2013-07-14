@@ -95,7 +95,7 @@ void SingleCellViewInformationSolversWidget::retranslateUi()
 
     // Retranslate the tool tip of all our solvers' properties
 
-    updatePropertiesToolTip();
+    updateToolTips();
 
     // Default retranslation
     // Note: we must do it last since we set the empty list value of some
@@ -132,7 +132,7 @@ void SingleCellViewInformationSolversWidget::updatePropertyToolTip(Core::Propert
 
 //==============================================================================
 
-void SingleCellViewInformationSolversWidget::updatePropertiesToolTip()
+void SingleCellViewInformationSolversWidget::updateToolTips()
 {
     // Update the tool tip of all our solvers' properties
 
@@ -275,11 +275,6 @@ void SingleCellViewInformationSolversWidget::initialize(const QString &pFileName
                                                         CellMLSupport::CellMLFileRuntime *pRuntime,
                                                         SingleCellViewSimulationData *)
 {
-    // Make sure that we have a CellML file runtime
-
-    if (!pRuntime)
-        return;
-
     // Retrieve and initialise our GUI state
 
     setGuiState(mGuiStates.contains(pFileName)?
@@ -301,7 +296,7 @@ void SingleCellViewInformationSolversWidget::initialize(const QString &pFileName
     setPropertiesUnit(mSolverData, voiUnit);
 
     // Update the tool tip of all our solvers' properties
-    updatePropertiesToolTip();
+    updateToolTips();
 }
 
 //==============================================================================

@@ -320,8 +320,8 @@
         <translation>&amp;Réinitialiser</translation>
     </message>
     <message>
-        <source>Reset all the model parameters</source>
-        <translation>Réinitialiser tous les paramètres du modèle</translation>
+        <source>Reset all the parameters</source>
+        <translation>Réinitialiser tous les paramètres</translation>
     </message>
 </context>
 </TS>
